@@ -1,14 +1,24 @@
 body, .content {
     height: 100vh;
     width: 100%;
-    overflow-x: hidden;
+    overflow: hidden;
 }
+
 
 .content {
     display: flex;
     flex-direction: column;
     max-height: 100vh;
+
 }
+
+.background{
+    background-image:url(images/bg.jpg) !important;
+    background-size: cover;
+    background-repeat: no-repeat;
+
+}
+
 
 body, html {
     margin:0!important;
@@ -22,13 +32,93 @@ body, html {
     box-sizing: border-box;
 }
 
+.container{
+    justify-content: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: inherit;
+    
+}
+
+.btn-primary {
+    background-color: #2965b4 !important; 
+    border-color: #4386dd;
+    width: fit-content;
+}
+
+
+#messageBox, #username {
+    border-radius: 15px;
+}
+
+#messageBox {
+    width: 80%;
+}
+
+#username {
+    width: 20%;
+}
+
+#messageBtn {
+    width: fit-content;
+}
+
 .messages {
+    background-color:#353535;
+    color: rgb(112, 108, 97);
+    max-height: 90vh;
+    margin-top: 2px;
+    margin-left: 2px;
+    margin-right: 2px;
+    margin-top: 45px;
+    margin-bottom: 40px;
+}
+
+.messages > .card-body {
     height: 100%;
+    overflow-x: hidden;
+    overflow-y: scroll; 
 }
 
-.messages .card-body {
-    background-color: #3D2B3D;
-    color: white;
+.message {    
+    background-color:#2965b4;
+    color: aliceblue;
+    border-radius: 10px;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 12px;
+    flex-direction: column;
+    display: block;
+    max-width: 60%;
+    min-width: 10%;
+
 }
 
+.username {   
+    color: rgb(255, 255, 255);
+    border-radius: 3px;
+    padding-top: 1px;
+    padding-left: 1px ;
+    padding-right: 1px;
+    font-size: 88% ;
+    box-sizing: border-box;
+    text-overflow: inherit;
+}
 
+ /* width */
+ ::-webkit-scrollbar {
+    width: 5px;
+  }
+  
+  /* Track */
+  ::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 5px grey;
+    border-radius: 10px;
+  }
+  
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: #777777;
+    border-radius: 10px;
+  } 

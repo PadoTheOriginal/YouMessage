@@ -10,19 +10,7 @@ $(function () {
     });
 
     socket.on("updating_messages", function(obj) {
-        $('.card-body').html('');
-        for (const index in obj.Messages) {
-            let message = obj.Messages[index];
-            let align = "me-auto";
-
-            if (message.User == $("#username").val()) {
-                align = "ms-auto";
-            }
-            
-            let htmlTR = `<span class="${align}">${message.User}: ${message.Message}</span><br />`;
-            $('.card-body').append($(htmlTR));
-        }
-        
+        GenerateMessage(obj.Messages)
     });
 });
 
@@ -75,18 +63,7 @@ function GetMessages() {
         type: 'GET',
         success: function (obj) {
             if (obj.success) {
-                $('.card-body').html('');
-                for (const index in obj.messages) {
-                    let message = obj.messages[index];
-                    let align = "me-auto";
-
-                    if (message.User == $("#username").val()) {
-                        align = "ms-auto";
-                    }
-                    
-                    let htmlTR = `<span class="${align}">${message.User}: ${message.Message}</span><br />`;
-                    $('.card-body').append($(htmlTR));
-                }
+                GenerateMessage(obj.messages)
             }
             else {
                 alert(obj);
@@ -96,4 +73,30 @@ function GetMessages() {
             alert("error");
         }
     }); 
+}
+
+function GenerateMessage(messages) {
+    $('.card-body').html('');
+
+    for (const index in messages) {
+        let message = messages[index];
+        
+        let align = "me-auto";
+    
+        if (message.User == $("#username").val()) {
+            align = "ms-auto";
+        }
+        
+        let htmlTR = `
+            <div class="${align}" username>
+                <span class="username">${message.User}</span>
+            </div>
+
+            <div class="${align} message">
+                <p class="message-content">${message.Message}</p>
+            </div>
+            <br />`;
+
+        $('.card-body').append($(htmlTR));
+    }
 }

@@ -3,62 +3,105 @@ from flask_httpauth import HTTPBasicAuth
 from flask_socketio import SocketIO, emit
 import bcrypt
 import os
+from random import randint
+import pickle
 
 app = Flask("YouMessage", template_folder="./content",
             static_folder="./content")
 socketio = SocketIO(app)
 
 """
-    Using Flask as the server
-    Using SQLite as the database
-    Using Jinja2, js, css for the frontend
 
-    First Phase TODO
+Second phase TODO
+1- Allow users to create a chat with any URL
+2- Make scroll happen automatically when there is a new message
+3- Only get one message instead of getting all
+4- Add ids to username
+5- Add validations on server side
+6- Save usernames so when you restart the application they're not lost
 
-    1- A single chat room for all users
-    2- Allow the user to send message and appear for other users
-    3- A username is defined by what they put in the input
-    4- Update messages in realtime
-    5- Barebones html and css, just so it doesn't stink too much
-    6- Open ports in router so it can be used anywhere
-    
 """
 
-messages = []
+chats = {}
 
-@app.route("/")
-def index():
-    global messages
+usernames = []
+
+@app.route('/', defaults={'chat': ''})
+@app.route('/<path:chat>')
+def index(chat):
+    global chats
     
-    response = make_response(render_template("index.jinja2", messages=messages))
+    chat = '/' + chat
+    
+    if chat not in chats:
+        chats[chat] = []
+    
+    response = make_response(render_template("index.jinja2", messages=chats[chat]))
                              
     response.set_cookie('home', expires=0)
     
     return response
 
-
-@app.route("/message", methods=['POST'])
-def messagePOST():
-    global messages
+@socketio.on("send_message")
+def send_message(chat:str, username:str, message:str):
+    global chats
     
-    messages.append({ "Message": request.form['Message'], "User": request.form['Username']})
+    if ((chat.isspace() or len(chat) == 0) or 
+        (username.isspace() or len(username) == 0) or 
+        (message.isspace() or len(message) == 0)):
+        return False
     
-    return jsonify(success=True)
-
-@app.route("/message", methods=['GET'])
-def messageGET():
-    global messages
+    if (len(username) > 70 or len(message) > 2000):
+        return False
     
-    return jsonify(success=True, messages=messages)
+    if (username not in usernames):
+        return False
+    
+    if chat not in chats:
+        chats[chat] = []
+    
+    message = { "Message": message, "User": username}
+    
+    chats[chat].append(message)
 
-@socketio.on("update_clients")
-def getMessagesAsync():
-    global messages
+    emit(f'new_message{chat}', {"Message": message}, broadcast=True)
+    
+    return True
 
-    emit('updating_messages', {"Messages": messages}, broadcast=True)
-    socketio.sleep(1)
+@socketio.on("save_username")
+def save_username(username:str):
+    global usernames
+    
+    if (len(username) > 64 or (username.isspace() or len(username) == 0)):
+        return ""
+    
+    while True:
+        username_id = randint(1, 9999)
+        username_with_id = f"{username}#{username_id:04n}"
+        
+        if (username_with_id not in usernames):
+            usernames.append(username_with_id)
+            save_data()
+            return username_with_id
+
+
+@socketio.on("validate_username")
+def validate_username(username:str):
+    global usernames
+    return username in usernames
+    
+def save_data():
+    global usernames, chats
+    with open("data.pickle", "wb") as f:
+        data = usernames
+        pickle.dump(data, f)
+        
 
 if __name__ == "__main__":
+    if (os.path.isfile("data.pickle")):
+        with open("data.pickle", "rb") as f:
+            usernames = pickle.load(f)
+    
     app.secret_key = os.urandom(19)
     
     if os.path.exists('./certificates'):

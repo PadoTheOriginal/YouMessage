@@ -1,6 +1,9 @@
 const socket = io();
 
 $(function () {
+    validateUsername();
+    alignMessages();
+
     socket.on("connect", () => {
         console.log("connected");
     });
@@ -9,94 +12,105 @@ $(function () {
         console.log("disconnected");
     });
 
-    socket.on("updating_messages", function(obj) {
-        GenerateMessage(obj.Messages)
+    socket.on(`new_message${window.location.pathname}`, function (obj) {
+        GenerateMessage(obj.Message);
     });
 });
 
-function checkForEnter(e) {
-    if (e.key == "Enter"){
-        sendMessage();
+function alignMessages() {
+    $('.username').each(function (i, e) {
+        if ($(e).text() == localStorage.getItem("username"))
+            $(e).addClass('ms-auto');
+    });
+
+    $('.message').each(function (i, e) {
+        if ($(e).attr("username") == localStorage.getItem("username"))
+            $(e).addClass('ms-auto');
+    });
+}
+
+function validateUsername() {
+    if (localStorage.getItem("username") == null) {
+        reinsertUsername();
+        return false;
+    }
+
+    socket.emit('validate_username', localStorage.getItem("username"), (exists) => {
+        if (!exists)
+            reinsertUsername();
+    });
+
+    if (localStorage.getItem("username") == null)
+        return false;
+
+    return true;
+
+    function reinsertUsername() {
+        $("#modalUsername").modal('show');
+        $("#username").val('');
+        $("#username").focus();
+        localStorage.setItem("username", null);
     }
 }
 
-function sendMessage() {
+function saveUsername() {
     let username = $("#username").val();
-    let message = $("#messageBox").val();
 
     if (!username.trim().length) {
         $("#username").focus();
         return 0;
     }
 
+    socket.emit('save_username', username, (username_with_id) => {
+        if (!username_with_id.trim().length) {
+            $("#username").focus();
+            return 0;
+        }
+        localStorage.setItem("username", username_with_id);
+        $("#modalUsername").modal('hide');
+    });
+}
+
+function checkForEnter(e, func) {
+    if (e.key == "Enter") {
+        func();
+    }
+}
+
+function sendMessage() {
+    let username = localStorage.getItem("username");
+    let message = $("#messageBox").val();
+
+    if (!validateUsername())
+        return 0;
+
     if (!message.trim().length) {
         $("#messageBox").focus();
         return 0;
     }
 
-    $.ajax({
-        url: '/message',
-        type: 'POST',
-        data: {
-            Message: message,
-            Username: username
-        },
-        success: function (response) {
-            if (response.success) {
-                $("#username").prop("readonly", true);
-                $("#messageBox").val("");
-                socket.emit("update_clients", function() {});
-            }
-            else {
-                alert(response);
-            }
-        },
-        error: function () {
-            alert("error");
-        }
-    }); 
+    let chatroom = window.location.pathname;
+
+    socket.emit('send_message', chatroom, username, message);
+    $("#messageBox").val("");
 }
 
-function GetMessages() {
-    $.ajax({
-        url: '/message',
-        type: 'GET',
-        success: function (obj) {
-            if (obj.success) {
-                GenerateMessage(obj.messages)
-            }
-            else {
-                alert(obj);
-            }
-        },
-        error: function () {
-            alert("error");
-        }
-    }); 
-}
+function GenerateMessage(message) {
+    let align = "";
 
-function GenerateMessage(messages) {
-    $('.card-body').html('');
+    if (message.User == localStorage.getItem("username")) {
+        align = "ms-auto";
+    }
 
-    for (const index in messages) {
-        let message = messages[index];
-        
-        let align = "me-auto";
-    
-        if (message.User == $("#username").val()) {
-            align = "ms-auto";
-        }
-        
-        let htmlTR = `
-            <div class="${align}" username>
-                <span class="username">${message.User}</span>
-            </div>
+    let htmlTR = `
+            <span class="username ${align}">${message.User}</span>
 
             <div class="${align} message">
                 <p class="message-content">${message.Message}</p>
             </div>
             <br />`;
 
-        $('.card-body').append($(htmlTR));
-    }
+    $('#messagesArea').append($(htmlTR));
+
+    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
 }

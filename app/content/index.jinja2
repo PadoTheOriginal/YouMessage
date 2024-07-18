@@ -9,23 +9,34 @@
         integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/content/custom.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body>
-<div class="background">
-    <div class="content" >
+    <div class="background">
+        <div class="content">
             <div class="row">
                 <div class="col-lg-2 col-md-2 col-1"></div>
-                <div class="col-lg-8 col-md-8 col-10"> 
+                <div class="col-lg-8 col-md-8 col-10">
                     <div class="card messages">
-                        <div class="card-body d-flex flex-column">
+                        <div class="card-body d-flex flex-column" id="messagesArea">
+                            {% for message in messages %}
+                            <span class="username">{{message.User}}</span>
+                            <div class="message" username="{{message.User}}">
+                                <p class="message-content">{{message.Message}}</p>
+                            </div>
+                            <br />
+                            {% endfor %}
                         </div>
                         <div class="card-footer">
                             <div class="d-flex flex-row">
-                                <input placeholder="User" id="username" type="text" class="form-control me-3">
-                                <input placeholder="Type a message" id="messageBox" type="text" class="form-control me-3" onkeyup="checkForEnter(event)">
-                                <button type="button" onclick="sendMessage()" class="btn btn-primary" id="messageBtn"><i class="fa-solid fa-paper-plane"></i></button>
+                                <input placeholder="Type a message" id="messageBox" type="text"
+                                    class="form-control me-3" onkeyup="checkForEnter(event, sendMessage)">
+                                <button type="button" onclick="sendMessage()" class="btn btn-primary fit-content"
+                                    id="messageBtn">
+                                    <i class="fa-solid fa-paper-plane"></i></button>
                             </div>
                         </div>
                     </div>
@@ -33,18 +44,38 @@
                 <div class="col-lg-2 col-md-2 col-1"></div>
             </div>
         </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="modalUsername" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="modalUsernameLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalUsernameLabel">Enter username</h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex flex-row">
+                            <input placeholder="User" id="username" onkeyup="checkForEnter(event, saveUsername)"
+                                type="text" class="form-control me-3">
+                            <button type="button" class="btn btn-primary" onclick="saveUsername()">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
+        integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
+        crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
         crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" integrity="sha512-u3fPA7V8qQmhBPNT5quvaXVa1mnnLSXUep5PS1qo5NRzHwG19aHmNJnj1Q8hpA/nBWZtZD4r4AX6YOt5ynLN2g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"
+        integrity="sha512-u3fPA7V8qQmhBPNT5quvaXVa1mnnLSXUep5PS1qo5NRzHwG19aHmNJnj1Q8hpA/nBWZtZD4r4AX6YOt5ynLN2g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="/content/script.js"></script>
-    <script>
-        $(function () {
-            GetMessages();
-        })
-    </script>
 </body>
+
 </html>

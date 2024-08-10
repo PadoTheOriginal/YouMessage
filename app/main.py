@@ -12,13 +12,10 @@ socketio = SocketIO(app)
 
 """
 
-Second phase TODO
-1- Allow users to create a chat with any URL
-2- Make scroll happen automatically when there is a new message
-3- Only get one message instead of getting all
-4- Add ids to username
-5- Add validations on server side
-6- Save usernames so when you restart the application they're not lost
+Third phase TODO
+Allow new types of message to be sent
+Allow users to send images
+Allow users to send audio recordings
 
 """
 
@@ -60,7 +57,7 @@ def send_message(chat:str, username:str, message:str):
     if chat not in chats:
         chats[chat] = []
     
-    message = { "Message": message, "User": username}
+    message = { "Type": "Message", "Value": message, "User": username}
     
     chats[chat].append(message)
 

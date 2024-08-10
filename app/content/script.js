@@ -15,6 +15,29 @@ $(function () {
     socket.on(`new_message${window.location.pathname}`, function (obj) {
         GenerateMessage(obj.Message);
     });
+
+    $("#messageBox").on('paste', function (e) {
+        var clipboardData, pastedData;
+        
+        clipboardData = (e.originalEvent || e).clipboardData;
+        // pastedData = clipboardData.getData('Text');
+        
+        if (!clipboardData.files.length) {
+            return;
+        }
+        
+        e.preventDefault();
+      
+        // Stop data actually being pasted into div
+        e.stopPropagation();
+        e.preventDefault();
+      
+        // Get pasted data via clipboard API
+
+
+        // Do whatever with pasteddata
+        console.log(clipboardData, pastedData, clipboardData.files);
+    });
 });
 
 function alignMessages() {
@@ -106,7 +129,7 @@ function GenerateMessage(message) {
             <span class="username ${align}">${message.User}</span>
 
             <div class="${align} message">
-                <p class="message-content">${message.Message}</p>
+                <p class="message-content">${message.Value}</p>
             </div>
             <br />`;
 
@@ -114,3 +137,18 @@ function GenerateMessage(message) {
 
     document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
 }
+
+function handlePaste(e) {
+    var clipboardData, pastedData;
+  
+    // Stop data actually being pasted into div
+    e.stopPropagation();
+    e.preventDefault();
+  
+    // Get pasted data via clipboard API
+    clipboardData = e.clipboardData || window.clipboardData;
+    pastedData = clipboardData.getData('Text');
+  
+    // Do whatever with pasteddata
+    alert(pastedData);
+  }

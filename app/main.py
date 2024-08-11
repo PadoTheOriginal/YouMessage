@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, jsonify, make_response, session, redirect
-from flask_httpauth import HTTPBasicAuth
 from flask_socketio import SocketIO, emit
-import bcrypt
 import os
 from random import randint
 import pickle
@@ -108,5 +106,5 @@ if __name__ == "__main__":
         app.run('0.0.0.0', 443, debug=True, use_reloader=True, ssl_context=('./certificates/cert.pem', './certificates/key.pem'))
 
     else:
-        app.run('0.0.0.0', 7979, debug=True, use_reloader=True)
+        app.run('0.0.0.0', 80, debug=True, use_reloader=True)
         

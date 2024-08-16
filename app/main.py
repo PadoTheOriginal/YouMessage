@@ -102,8 +102,8 @@ if __name__ == "__main__":
     
     app.secret_key = os.urandom(19)
     
-    if os.path.exists('./certificates'):
-        app.run('0.0.0.0', 443, debug=True, use_reloader=True, ssl_context=('./certificates/cert.pem', './certificates/key.pem'))
+    if os.path.exists('../certificates'):
+        app.run('0.0.0.0', 7979, debug=False, use_reloader=False, ssl_context=('../certificates/pado_ddnsking_com.pem', '../certificates/private.key'))
 
     else:
         app.run('0.0.0.0', 7979, debug=True, use_reloader=True)

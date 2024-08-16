@@ -1,1 +1,6 @@
 *.pickle
+
+*.crt
+*.pem
+*.key
+*.csr

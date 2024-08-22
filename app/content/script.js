@@ -4,6 +4,8 @@ $(function () {
     validateUsername();
     alignMessages();
 
+    setTimeout(askPermissionToSendNotification, 2000);
+
     socket.on("connect", () => {
         console.log("connected");
     });
@@ -13,7 +15,18 @@ $(function () {
     });
 
     socket.on(`new_message${window.location.pathname}`, function (obj) {
-        GenerateMessage(obj.Message);
+        let message = obj.Message;
+
+        GenerateMessage(message);
+
+        if (message.User != localStorage.getItem("username")) {
+            askPermissionToSendNotification();
+            
+            document.getElementById('messageAudio').play();
+            
+            if (document.hidden)
+                new Notification(message.User, { body: message.Message });
+        }
     });
 
     $("#messageBox").on('paste', function (e) {
@@ -39,6 +52,21 @@ $(function () {
         console.log(clipboardData, pastedData, clipboardData.files);
     });
 });
+
+function askPermissionToSendNotification() {
+    if (Notification.permission == "granted")
+        return 0;
+
+    Notification.requestPermission().then();
+
+    new SnackBar({
+        message: "Please allow notifications in your browser.",
+        status: "warning",
+        position: "tl",
+        dismissible: true,
+        timeout: 10000
+    });
+}
 
 function alignMessages() {
     $('.username').each(function (i, e) {

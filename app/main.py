@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, jsonify, make_response, session, redirect
-from flask_httpauth import HTTPBasicAuth
 from flask_socketio import SocketIO, emit
-import bcrypt
 import os
 from random import randint
 import pickle
@@ -9,15 +7,6 @@ import pickle
 app = Flask("YouMessage", template_folder="./content",
             static_folder="./content")
 socketio = SocketIO(app)
-
-"""
-
-Third phase TODO
-Allow new types of message to be sent
-Allow users to send images
-Allow users to send audio recordings
-
-"""
 
 chats = {}
 
@@ -101,8 +90,8 @@ if __name__ == "__main__":
     
     app.secret_key = os.urandom(19)
     
-    if os.path.exists('./certificates'):
-        app.run('0.0.0.0', 443, debug=True, use_reloader=True, ssl_context=('./certificates/cert.pem', './certificates/key.pem'))
+    if os.path.exists('../certificates'):
+        app.run('0.0.0.0', 7979, debug=False, use_reloader=True, ssl_context=('../certificates/pado_ddnsking_com.pem', '../certificates/private.key'))
 
     else:
         app.run('0.0.0.0', 7979, debug=True, use_reloader=True)

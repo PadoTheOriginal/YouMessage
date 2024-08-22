@@ -8,18 +8,6 @@ app = Flask("YouMessage", template_folder="./content",
             static_folder="./content")
 socketio = SocketIO(app)
 
-"""
-
-Second phase TODO
-1- Allow users to create a chat with any URL
-2- Make scroll happen automatically when there is a new message
-3- Only get one message instead of getting all
-4- Add ids to username
-5- Add validations on server side
-6- Save usernames so when you restart the application they're not lost
-
-"""
-
 chats = {}
 
 usernames = []
@@ -103,7 +91,7 @@ if __name__ == "__main__":
     app.secret_key = os.urandom(19)
     
     if os.path.exists('../certificates'):
-        app.run('0.0.0.0', 7979, debug=False, use_reloader=False, ssl_context=('../certificates/pado_ddnsking_com.pem', '../certificates/private.key'))
+        app.run('0.0.0.0', 7979, debug=False, use_reloader=True, ssl_context=('../certificates/pado_ddnsking_com.pem', '../certificates/private.key'))
 
     else:
         app.run('0.0.0.0', 7979, debug=True, use_reloader=True)

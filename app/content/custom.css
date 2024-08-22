@@ -88,7 +88,7 @@ body, html {
     display: block;
     max-width: 60%;
     min-width: 10%;
-
+    width: fit-content;
 }
 
 .username {   

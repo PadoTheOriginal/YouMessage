@@ -1,4 +1,7 @@
 const socket = io();
+var selected_files = [];
+var recording = false;
+var recorder;
 
 $(function () {
     validateUsername();
@@ -16,40 +19,59 @@ $(function () {
 
     socket.on(`new_message${window.location.pathname}`, function (obj) {
         let message = obj.Message;
+        let notificationBody = message.Message;
 
-        GenerateMessage(message);
+        if (message.Type == "Message")
+            GenerateMessage(message);
+
+        else if (message.Type == "File" && (message.Value.endsWith('.png') || message.Value.endsWith('.jpg')
+            || message.Value.endsWith('.jpeg') || message.Value.endsWith('.gif') || message.Value.endsWith('.webp'))) {
+            GenerateFileImage(message);
+            notificationBody = "Sent you an image";
+        }
+
+        else if (message.Type == "File" && (message.Value.endsWith('.wav') || message.Value.endsWith('.mp3')
+            || message.Value.endsWith('.m4a') || message.Value.endsWith('.ogg'))) {
+            GenerateFileAudio(message);
+            notificationBody = "Sent you an audio";
+        }
+
+        else if (message.Type == "File" && (message.Value.endsWith('.mp4') || message.Value.endsWith('.mkv')
+            || message.Value.endsWith('.avi'))) {
+            GenerateFileVideo(message);
+            notificationBody = "Sent you a video";
+        }
+
+        else if (message.Type == "File") {
+            GenerateFile(message);
+            notificationBody = "Sent you a file";
+        }
 
         if (message.User != localStorage.getItem("username")) {
             askPermissionToSendNotification();
-            
+
             document.getElementById('messageAudio').play();
-            
+
             if (document.hidden)
-                new Notification(message.User, { body: message.Message });
+                new Notification(message.User, { body: notificationBody });
         }
     });
 
     $("#messageBox").on('paste', function (e) {
-        var clipboardData, pastedData;
-        
+        var clipboardData;
+
         clipboardData = (e.originalEvent || e).clipboardData;
-        // pastedData = clipboardData.getData('Text');
-        
+
         if (!clipboardData.files.length) {
             return;
         }
-        
+
         e.preventDefault();
-      
-        // Stop data actually being pasted into div
+
         e.stopPropagation();
         e.preventDefault();
-      
-        // Get pasted data via clipboard API
 
-
-        // Do whatever with pasteddata
-        console.log(clipboardData, pastedData, clipboardData.files);
+        selectFiles(clipboardData.files);
     });
 });
 
@@ -146,6 +168,92 @@ function sendMessage() {
     $("#messageBox").val("");
 }
 
+function sendFile() {
+    if (!validateUsername())
+        return 0;
+
+    sendFiles(selected_files).then(function () {
+        $("#SelectedFileDiv").toggleClass("d-none");
+        $("#MessageBoxDiv").toggleClass("d-none");
+        selected_files = [];
+        new SnackBar({
+            message: "File sent sucessfully.",
+            status: "success",
+            position: "bm",
+            dismissible: true,
+            timeout: 3000
+        });
+    });
+
+    async function sendFiles(files) {
+        for (const selected_file of files) {
+            let filename = selected_file.name;
+            let filedata = await selected_file.arrayBuffer();
+            let username = localStorage.getItem("username")
+            let chatroom = window.location.pathname;
+
+            socket.emit('send_file', chatroom, username, filename, filedata);
+        }
+
+        return true;
+    }
+}
+
+function validateFiles(e) {
+    selectFiles(e.files);
+}
+
+function selectFiles(files) {
+    selected_files.push.apply(selected_files, files);
+
+    if (selected_files.length > 0 && selected_files !== undefined) {
+        $("#SelectedFileDiv > span").text(`Selected ${selected_files.length} file(s)`);
+
+        $("#SelectedFileDiv").toggleClass("d-none");
+        $("#MessageBoxDiv").toggleClass("d-none");
+        $("#FileBtn").focus();
+    }
+}
+
+function unselectFiles() {
+    $("#SelectedFileDiv").toggleClass("d-none");
+    $("#MessageBoxDiv").toggleClass("d-none");
+
+    selected_files = []
+}
+
+function recordAudio() {
+    if (recording) {
+        recorder.stop();
+        recorder.stream.getAudioTracks().forEach(function(track){track.stop();});
+        recording = false;
+        $("#recordBtn > .fa-microphone").removeClass("text-danger");
+        $("#recordBtn > .fa-microphone").addClass("text-white");
+    }
+    else {
+        navigator.mediaDevices.getUserMedia({
+            audio: true
+        }).then(function (stream) {
+            recorder = new MediaRecorder(stream);
+            recorder.start();
+            recording = true;
+            recorder.addEventListener('dataavailable', function (event) {
+                let file = new File([event.data], 'AudioRecording.ogg', { type: 'audio/ogg', lastModified: new Date() });
+                selectFiles([file]);
+                new SnackBar({
+                    message: "Audio recording completed.",
+                    status: "success",
+                    position: "bm",
+                    dismissible: true,
+                    timeout: 3000
+                });
+            });
+            $("#recordBtn > .fa-microphone").addClass("text-danger");
+            $("#recordBtn > .fa-microphone").removeClass("text-white");
+        });
+    }
+}
+
 function GenerateMessage(message) {
     let align = "";
 
@@ -166,17 +274,85 @@ function GenerateMessage(message) {
     document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
 }
 
-function handlePaste(e) {
-    var clipboardData, pastedData;
-  
-    // Stop data actually being pasted into div
-    e.stopPropagation();
-    e.preventDefault();
-  
-    // Get pasted data via clipboard API
-    clipboardData = e.clipboardData || window.clipboardData;
-    pastedData = clipboardData.getData('Text');
-  
-    // Do whatever with pasteddata
-    alert(pastedData);
-  }
+function GenerateFileImage(message) {
+    let align = "";
+
+    if (message.User == localStorage.getItem("username")) {
+        align = "ms-auto";
+    }
+
+    let htmlTR = `
+            <span class="username ${align}">${message.User}</span>
+
+            <div class="${align} message">
+                <p class="message-content"><img src="/content/shared_files/${message.Value}" alt="${message.Value}" onclick="this.requestFullscreen()"></p>
+            </div>
+            <br />`;
+
+    $('#messagesArea').append($(htmlTR));
+
+    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+}
+
+function GenerateFileAudio(message) {
+    let align = "";
+
+    if (message.User == localStorage.getItem("username")) {
+        align = "ms-auto";
+    }
+
+    let htmlTR = `
+            <span class="username ${align}">${message.User}</span>
+
+            <div class="${align} message">
+                <p class="message-content"><audio src="/content/shared_files/${message.Value}" controls></audio></p>
+            </div>
+            <br />`;
+
+    $('#messagesArea').append($(htmlTR));
+
+    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+}
+
+function GenerateFileVideo(message) {
+    let align = "";
+
+    if (message.User == localStorage.getItem("username")) {
+        align = "ms-auto";
+    }
+
+    let htmlTR = `
+            <span class="username ${align}">${message.User}</span>
+
+            <div class="${align} message">
+                <p class="message-content"><video src="/content/shared_files/${message.Value}" controls></video></p>
+            </div>
+            <br />`;
+
+    $('#messagesArea').append($(htmlTR));
+
+    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+}
+
+function GenerateFile(message) {
+    let align = "";
+
+    if (message.User == localStorage.getItem("username")) {
+        align = "ms-auto";
+    }
+
+    let htmlTR = `
+            <span class="username ${align}">${message.User}</span>
+
+            <div class="${align} message">
+                <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> ${message.Value}</span></p>
+                <a class="btn btn-primary btn-download" href="/content/shared_files/${message.Value}" target="_blank" download="true">
+                    <i class="fa-solid fa-download text-white"></i>
+                </a>
+            </div>
+            <br />`;
+
+    $('#messagesArea').append($(htmlTR));
+
+    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+}

@@ -86,20 +86,63 @@ body, html {
     padding-top: 12px;
     flex-direction: column;
     display: block;
-    max-width: 60%;
+    max-width: 75%;
     min-width: 10%;
     width: fit-content;
+    position: relative;
+}
+
+.message img {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.message video {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.message-content span {
+    background-color: #1d282f;
+    padding: 10px;
+    border-radius: 5px;
+    color: #fff;
 }
 
 .username {   
     color: rgb(255, 255, 255);
     border-radius: 3px;
     padding-top: 1px;
-    padding-left: 1px ;
+    padding-left: 1px;
     padding-right: 1px;
-    font-size: 88% ;
+    font-size: 88%;
     box-sizing: border-box;
     text-overflow: inherit;
+}
+
+.btn-download {
+    position: absolute;
+    top: 10px;
+    left: -50px;
+    border-radius: 50%;
+}
+
+.text-white {
+    color: #fff!important;
+}
+
+.text-gray {
+    color: gray!important;
+}
+
+.remove-style {
+    background: none;
+	color: inherit;
+	border: none;
+	padding: 0;
+	font: inherit;
+	cursor: pointer;
+	outline: inherit;
 }
 
 .modal-content {

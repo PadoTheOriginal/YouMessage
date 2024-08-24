@@ -4,3 +4,5 @@
 *.pem
 *.key
 *.csr
+
+/app/content/shared_files/*

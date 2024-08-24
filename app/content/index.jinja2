@@ -21,20 +21,60 @@
                     <div class="card messages">
                         <div class="card-body d-flex flex-column" id="messagesArea">
                             {% for message in messages %}
-                            <span class="username">{{message.User}}</span>
-                            <div class="message" username="{{message.User}}">
-                                <p class="message-content">{{message.Message}}</p>
-                            </div>
-                            <br />
+                                {% if message.Type == "Message" %}
+                                    <span class="username">{{message.User}}</span>
+                                    <div class="message" username="{{message.User}}">
+                                        <p class="message-content">{{message.Value}}</p>
+                                    </div>
+                                    <br />
+                                {% elif message.Type == "File" and (message.Value.endswith('.png') or message.Value.endswith('.jpg') or message.Value.endswith('.jpeg') or message.Value.endswith('.gif') or message.Value.endswith('.webp')) %}
+                                    <span class="username">{{message.User}}</span>
+                                    <div class="message" username="{{message.User}}">
+                                        <p class="message-content"><img src="/content/shared_files/{{message.Value}}" alt="{{message.Value}}" onclick="this.requestFullscreen()"></p>
+                                    </div>
+                                    <br />
+                                {% elif message.Type == "File" and (message.Value.endswith('.mp3') or message.Value.endswith('.wav') or message.Value.endswith('.m4a') or message.Value.endswith('.ogg')) %}
+                                    <span class="username">{{message.User}}</span>
+                                    <div class="message" username="{{message.User}}">
+                                        <p class="message-content"><audio src="/content/shared_files/{{message.Value}}" controls></audio></p>
+                                    </div>
+                                    <br />
+                                {% elif message.Type == "File" and (message.Value.endswith('.mp4') or message.Value.endswith('.mkv') or message.Value.endswith('.avi')) %}
+                                    <span class="username">{{message.User}}</span>
+                                    <div class="message" username="{{message.User}}">
+                                        <p class="message-content"><video src="/content/shared_files/{{message.Value}}" controls></video></p>
+                                    </div>
+                                    <br />
+                                {% elif message.Type == "File" %}
+                                    <span class="username">{{message.User}}</span>
+                                    <div class="message" username="{{message.User}}">
+                                        <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> {{message.Value}}</span></p>
+                                        <a class="btn btn-primary btn-download" href="/content/shared_files/{{message.Value}}" target="_blank" download="true">
+                                            <i class="fa-solid fa-download text-white"></i>
+                                        </a>
+                                    </div>
+                                    <br />
+                                {% endif %}
                             {% endfor %}
                         </div>
                         <div class="card-footer">
-                            <div class="d-flex flex-row">
+                            <div id="MessageBoxDiv" class="d-flex flex-row">
+                                <input id="sendFiles" class="d-none" type="file" onchange="validateFiles(this)">
+                                <button class="remove-style me-3" type="button" onclick="$('#sendFiles').click()"><i class="fa-solid fa-plus text-white fa-xl"></i></button>
                                 <input placeholder="Type a message" id="messageBox" type="text"
                                     class="form-control me-3" onkeyup="checkForEnter(event, sendMessage)">
+                                <button id="recordBtn" class="remove-style me-3" type="button" onclick="recordAudio();"><i class="fa-solid fa-microphone text-white fa-xl"></i></button>
                                 <button type="button" onclick="sendMessage()" class="btn btn-primary fit-content"
                                     id="messageBtn">
                                     <i class="fa-solid fa-paper-plane"></i></button>
+                            </div>
+                            <div id="SelectedFileDiv" class="d-flex flex-row d-none">
+                                <button type="button" class="btn-close btn-close-white m-auto" onclick="unselectFiles()"></button>
+                                <span class="w-100 ms-3 my-auto text-white">Send files</span>    
+                                <button type="button" onclick="sendFile()" class="btn btn-primary fit-content"
+                                    id="FileBtn">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
                             </div>
                         </div>
                     </div>

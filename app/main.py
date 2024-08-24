@@ -3,10 +3,12 @@ from flask_socketio import SocketIO, emit
 import os
 from random import randint
 import pickle
+import glob
 
 app = Flask("YouMessage", template_folder="./content",
             static_folder="./content")
-socketio = SocketIO(app)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+socketio = SocketIO(app, max_http_buffer_size=1024 * 1024 * 1024)
 
 chats = {}
 
@@ -46,10 +48,37 @@ def send_message(chat:str, username:str, message:str):
     if chat not in chats:
         chats[chat] = []
     
-    message = { "Message": message, "User": username}
+    message = { "Type": "Message", "Value": message, "User": username}
     
     chats[chat].append(message)
 
+    emit(f'new_message{chat}', {"Message": message}, broadcast=True)
+    
+    return True
+
+@socketio.on("send_file")
+def send_file(chat:str, username:str, filename:str, filedata:bytes):
+    global chats
+    
+    if chat not in chats:
+        chats[chat] = []
+    
+    new_filename = filename
+    
+    for i in range(1, 1000):
+        if not os.path.exists(f'content/shared_files/{new_filename}'):
+            with open(f'content/shared_files/{new_filename}', "wb") as f:
+                f.write(filedata)
+                
+            break;
+                
+        new_filename = f'({i}) {filename}'
+            
+    
+    message = {"Type": "File", "Value": new_filename, "User": username}
+    
+    chats[chat].append(message)
+    
     emit(f'new_message{chat}', {"Message": message}, broadcast=True)
     
     return True
@@ -87,6 +116,11 @@ if __name__ == "__main__":
     if (os.path.isfile("data.pickle")):
         with open("data.pickle", "rb") as f:
             usernames = pickle.load(f)
+    
+    # make sure to remove all the temporary files on restart
+    files = glob.glob('content\shared_files\*')
+    for f in files:
+        os.remove(f)
     
     app.secret_key = os.urandom(19)
     

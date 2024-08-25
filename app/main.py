@@ -4,6 +4,7 @@ import os
 from random import randint
 import pickle
 import glob
+from time import gmtime, strftime
 
 app = Flask("YouMessage", template_folder="./content",
             static_folder="./content")
@@ -48,7 +49,7 @@ def send_message(chat:str, username:str, message:str):
     if chat not in chats:
         chats[chat] = []
     
-    message = { "Type": "Message", "Value": message, "User": username}
+    message = {"Type": "Message", "Value": message, "User": username, "DateTime": strftime("%Y-%m-%d %H:%M:%S", gmtime())}
     
     chats[chat].append(message)
 
@@ -64,6 +65,7 @@ def send_file(chat:str, username:str, filename:str, filedata:bytes):
         chats[chat] = []
     
     new_filename = filename
+    fileextention = filename.split('.')[-1].lower()
     
     for i in range(1, 1000):
         if not os.path.exists(f'content/shared_files/{new_filename}'):
@@ -73,9 +75,18 @@ def send_file(chat:str, username:str, filename:str, filedata:bytes):
             break;
                 
         new_filename = f'({i}) {filename}'
-            
+      
+    if fileextention in ['png', 'jpg', 'jpeg', 'gif', 'webp']:  
+        message = {"Type": "Image", "Value": new_filename, "User": username, "DateTime": strftime("%Y-%m-%d %H:%M:%S", gmtime())}
     
-    message = {"Type": "File", "Value": new_filename, "User": username}
+    elif fileextention in ['wav', 'mp3', 'm4a', 'ogg', 'aac', 'aiff']:
+        message = {"Type": "Audio", "Value": new_filename, "User": username, "DateTime": strftime("%Y-%m-%d %H:%M:%S", gmtime())}
+    
+    elif fileextention in ['mp4', 'mkv', 'avi', 'ogv', 'mov', 'webm', 'wmv', 'm4v']:
+        message = {"Type": "Video", "Value": new_filename, "User": username, "DateTime": strftime("%Y-%m-%d %H:%M:%S", gmtime())}
+    
+    else:
+        message = {"Type": "File", "Value": new_filename, "User": username, "DateTime": strftime("%Y-%m-%d %H:%M:%S", gmtime())}
     
     chats[chat].append(message)
     

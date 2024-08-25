@@ -80,26 +80,31 @@ body, html {
 .message {    
     background-color:#2965b4;
     color: aliceblue;
-    border-radius: 10px;
+    border-radius: 13px;
     padding-left: 12px;
     padding-right: 12px;
     padding-top: 12px;
     flex-direction: column;
     display: block;
-    max-width: 75%;
-    min-width: 10%;
+    max-width: 70%;
+    min-width: 5%;
     width: fit-content;
     position: relative;
+    margin-bottom: 2px;
 }
 
 .message img {
     max-width: 100%;
-    max-height: 100%;
+    max-height: 50vh;
 }
 
 .message video {
     max-width: 100%;
-    max-height: 100%;
+    max-height: 50vh;
+}
+
+.message audio {
+    max-width: 100%;
 }
 
 .message-content span {
@@ -167,3 +172,8 @@ body, html {
     background: #777777;
     border-radius: 10px;
 } 
+
+* {
+    scrollbar-color: #777777 #4d4d4d00;
+    scrollbar-width: thin;
+}

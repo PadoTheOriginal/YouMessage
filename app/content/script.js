@@ -19,40 +19,25 @@ $(function () {
 
     socket.on(`new_message${window.location.pathname}`, function (obj) {
         let message = obj.Message;
-        let notificationBody = message.Message;
+        let notificationBody = message.Value;
 
-        if (message.Type == "Message")
-            GenerateMessage(message);
+        GenerateMessage(message, message.Type);
 
-        else if (message.Type == "File" && (message.Value.endsWith('.png') || message.Value.endsWith('.jpg')
-            || message.Value.endsWith('.jpeg') || message.Value.endsWith('.gif') || message.Value.endsWith('.webp'))) {
-            GenerateFileImage(message);
-            notificationBody = "Sent you an image";
-        }
-
-        else if (message.Type == "File" && (message.Value.endsWith('.wav') || message.Value.endsWith('.mp3')
-            || message.Value.endsWith('.m4a') || message.Value.endsWith('.ogg'))) {
-            GenerateFileAudio(message);
-            notificationBody = "Sent you an audio";
-        }
-
-        else if (message.Type == "File" && (message.Value.endsWith('.mp4') || message.Value.endsWith('.mkv')
-            || message.Value.endsWith('.avi'))) {
-            GenerateFileVideo(message);
-            notificationBody = "Sent you a video";
-        }
-
-        else if (message.Type == "File") {
-            GenerateFile(message);
-            notificationBody = "Sent you a file";
-        }
+        if (message.Type == 'Image')
+            notificationBody = 'Sent you an Image';
+        if (message.Type == 'Audio')
+            notificationBody = 'Sent you an Audio';
+        if (message.Type == 'Video')
+            notificationBody = 'Sent you a Video';
+        if (message.Type == 'File')
+            notificationBody = 'Sent you a File';
 
         if (message.User != localStorage.getItem("username")) {
             askPermissionToSendNotification();
 
             document.getElementById('messageAudio').play();
 
-            if (document.hidden)
+            if (document.hidden) // Only show if user is not on website
                 new Notification(message.User, { body: notificationBody });
         }
     });
@@ -225,7 +210,7 @@ function unselectFiles() {
 function recordAudio() {
     if (recording) {
         recorder.stop();
-        recorder.stream.getAudioTracks().forEach(function(track){track.stop();});
+        recorder.stream.getAudioTracks().forEach(function (track) { track.stop(); });
         recording = false;
         $("#recordBtn > .fa-microphone").removeClass("text-danger");
         $("#recordBtn > .fa-microphone").addClass("text-white");
@@ -254,105 +239,48 @@ function recordAudio() {
     }
 }
 
-function GenerateMessage(message) {
-    let align = "";
+function GenerateMessage(message, messageType) {
+    let align = "", htmlTR = "";
+    let last_user = $("#messagesArea .username:last-of-type").text();
 
-    if (message.User == localStorage.getItem("username")) {
+    if (message.User == localStorage.getItem("username"))
         align = "ms-auto";
-    }
 
-    let htmlTR = `
-            <span class="username ${align}">${message.User}</span>
+    if (message.User != last_user)
+        htmlTR += `
+        <span class="username ${align}">${message.User}</span>
+        `;
 
-            <div class="${align} message">
-                <p class="message-content">${message.Value}</p>
-            </div>
-            <br />`;
+    htmlTR += `
+    <div class="${align} message">
+    `;
 
-    $('#messagesArea').append($(htmlTR));
-
-    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
-}
-
-function GenerateFileImage(message) {
-    let align = "";
-
-    if (message.User == localStorage.getItem("username")) {
-        align = "ms-auto";
-    }
-
-    let htmlTR = `
-            <span class="username ${align}">${message.User}</span>
-
-            <div class="${align} message">
+    if (messageType == "Message")
+        htmlTR += `<p class="message-content">${message.Value}</p>`;
+    else if (messageType == "Image")
+        htmlTR += `
                 <p class="message-content"><img src="/content/shared_files/${message.Value}" alt="${message.Value}" onclick="this.requestFullscreen()"></p>
-            </div>
-            <br />`;
-
-    $('#messagesArea').append($(htmlTR));
-
-    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
-}
-
-function GenerateFileAudio(message) {
-    let align = "";
-
-    if (message.User == localStorage.getItem("username")) {
-        align = "ms-auto";
-    }
-
-    let htmlTR = `
-            <span class="username ${align}">${message.User}</span>
-
-            <div class="${align} message">
+                `;
+    else if (messageType == "Audio")
+        htmlTR += `
                 <p class="message-content"><audio src="/content/shared_files/${message.Value}" controls></audio></p>
-            </div>
-            <br />`;
-
-    $('#messagesArea').append($(htmlTR));
-
-    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
-}
-
-function GenerateFileVideo(message) {
-    let align = "";
-
-    if (message.User == localStorage.getItem("username")) {
-        align = "ms-auto";
-    }
-
-    let htmlTR = `
-            <span class="username ${align}">${message.User}</span>
-
-            <div class="${align} message">
+                `;
+    else if (messageType == "Video")
+        htmlTR += `
                 <p class="message-content"><video src="/content/shared_files/${message.Value}" controls></video></p>
-            </div>
-            <br />`;
-
-    $('#messagesArea').append($(htmlTR));
-
-    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
-}
-
-function GenerateFile(message) {
-    let align = "";
-
-    if (message.User == localStorage.getItem("username")) {
-        align = "ms-auto";
-    }
-
-    let htmlTR = `
-            <span class="username ${align}">${message.User}</span>
-
-            <div class="${align} message">
+                `;
+    else if (messageType == "File")
+        htmlTR += `
                 <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> ${message.Value}</span></p>
                 <a class="btn btn-primary btn-download" href="/content/shared_files/${message.Value}" target="_blank" download="true">
                     <i class="fa-solid fa-download text-white"></i>
                 </a>
-            </div>
-            <br />`;
+                `;
 
-    $('#messagesArea').append($(htmlTR));
+    htmlTR += `
+    </div>
+    `;
 
+    document.getElementById('messagesArea').insertAdjacentHTML('beforeend', htmlTR)
     document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
 }

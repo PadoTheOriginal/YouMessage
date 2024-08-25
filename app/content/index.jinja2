@@ -20,41 +20,28 @@
                 <div class="col-lg-8 col-md-8 col-10">
                     <div class="card messages">
                         <div class="card-body d-flex flex-column" id="messagesArea">
+                            {% set last_user = namespace(value='') %}
                             {% for message in messages %}
-                                {% if message.Type == "Message" %}
+                                {% if message.User != last_user.value %}
                                     <span class="username">{{message.User}}</span>
-                                    <div class="message" username="{{message.User}}">
+                                {% endif %}
+                                <div class="message" username="{{message.User}}">
+                                    {% if message.Type == "Message" %}
                                         <p class="message-content">{{message.Value}}</p>
-                                    </div>
-                                    <br />
-                                {% elif message.Type == "File" and (message.Value.endswith('.png') or message.Value.endswith('.jpg') or message.Value.endswith('.jpeg') or message.Value.endswith('.gif') or message.Value.endswith('.webp')) %}
-                                    <span class="username">{{message.User}}</span>
-                                    <div class="message" username="{{message.User}}">
+                                    {% elif message.Type == "Image" %}
                                         <p class="message-content"><img src="/content/shared_files/{{message.Value}}" alt="{{message.Value}}" onclick="this.requestFullscreen()"></p>
-                                    </div>
-                                    <br />
-                                {% elif message.Type == "File" and (message.Value.endswith('.mp3') or message.Value.endswith('.wav') or message.Value.endswith('.m4a') or message.Value.endswith('.ogg')) %}
-                                    <span class="username">{{message.User}}</span>
-                                    <div class="message" username="{{message.User}}">
+                                    {% elif message.Type == "Audio" %}
                                         <p class="message-content"><audio src="/content/shared_files/{{message.Value}}" controls></audio></p>
-                                    </div>
-                                    <br />
-                                {% elif message.Type == "File" and (message.Value.endswith('.mp4') or message.Value.endswith('.mkv') or message.Value.endswith('.avi')) %}
-                                    <span class="username">{{message.User}}</span>
-                                    <div class="message" username="{{message.User}}">
+                                    {% elif message.Type == "Video" %}
                                         <p class="message-content"><video src="/content/shared_files/{{message.Value}}" controls></video></p>
-                                    </div>
-                                    <br />
-                                {% elif message.Type == "File" %}
-                                    <span class="username">{{message.User}}</span>
-                                    <div class="message" username="{{message.User}}">
+                                    {% elif message.Type == "File" %}
                                         <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> {{message.Value}}</span></p>
                                         <a class="btn btn-primary btn-download" href="/content/shared_files/{{message.Value}}" target="_blank" download="true">
                                             <i class="fa-solid fa-download text-white"></i>
                                         </a>
-                                    </div>
-                                    <br />
-                                {% endif %}
+                                    {% endif %}
+                                </div>
+                                {% set last_user.value = message.User %}
                             {% endfor %}
                         </div>
                         <div class="card-footer">

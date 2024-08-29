@@ -57,9 +57,41 @@ def send_message(chat:str, username:str, message:str):
     
     return True
 
+@socketio.on("user_typing")
+def user_typing(chat:str, username:str):
+    global chats
+    
+    if ((chat.isspace() or len(chat) == 0) or 
+        (username.isspace() or len(username) == 0)):
+        return False
+    
+    if (len(username) > 70):
+        return False
+    
+    if (username not in usernames):
+        return False
+    
+    if chat not in chats:
+        chats[chat] = []
+    
+    emit(f'user_typing{chat}', {"Username": username}, broadcast=True)
+    
+    return True
+
 @socketio.on("send_file")
 def send_file(chat:str, username:str, filename:str, filedata:bytes):
     global chats
+    
+    if ((chat.isspace() or len(chat) == 0) or 
+        (username.isspace() or len(username) == 0) or 
+        (filename.isspace() or len(filename) == 0)):
+        return False
+    
+    if len(username) > 70:
+        return False
+    
+    if (username not in usernames):
+        return False
     
     if chat not in chats:
         chats[chat] = []
@@ -109,7 +141,6 @@ def save_username(username:str):
             usernames.append(username_with_id)
             save_data()
             return username_with_id
-
 
 @socketio.on("validate_username")
 def validate_username(username:str):

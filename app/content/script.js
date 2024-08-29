@@ -2,6 +2,8 @@ const socket = io();
 var selected_files = [];
 var recording = false;
 var recorder;
+var users_typing = [];
+var users_typing_timeouts = [];
 
 $(function () {
     validateUsername();
@@ -42,7 +44,46 @@ $(function () {
         }
     });
 
-    $("#messageBox").on('paste', function (e) {
+    socket.on(`user_typing${window.location.pathname}`, function (obj) {
+        let user_typing = obj.Username;
+        let username = localStorage.getItem("username");
+
+        if (!users_typing.includes(user_typing) && user_typing != username) {
+            users_typing.push(user_typing);
+
+            setTimeout(function () {
+                users_typing.splice(users_typing.indexOf(user_typing), 1)
+            }, 1000)
+
+            users_typing.sort(function(a, b){
+                var nameA = a.toLowerCase(), nameB = b.toLowerCase();
+                if (nameA < nameB) //sort string ascending
+                 return -1;
+                if (nameA > nameB)
+                 return 1;
+                return 0; //default return value (no sorting)
+            });
+
+            if (users_typing.length == 1) 
+                $(".users-typing").text(users_typing[0] + " is typing...");
+            else
+                $(".users-typing").text(users_typing.join(" and ") + " are typing...");
+
+            $(".users-typing").removeClass("d-none");
+
+            for (const timeout of users_typing_timeouts) {
+                clearTimeout(timeout);
+            }
+            users_typing_timeouts = [];
+
+            users_typing_timeouts.push(setTimeout(function () {
+                    $(".users-typing").addClass("d-none");
+                }, 
+            1800));
+        }
+    });
+
+    $(".listen-clipboard").on('paste', function (e) {
         var clipboardData;
 
         clipboardData = (e.originalEvent || e).clipboardData;
@@ -151,6 +192,11 @@ function sendMessage() {
 
     socket.emit('send_message', chatroom, username, message);
     $("#messageBox").val("");
+
+    setTimeout(function () {
+        $("#messageBtn").addClass("d-none");
+        $("#recordBtn").removeClass("d-none");
+    }, 500);
 }
 
 function sendFile() {
@@ -236,6 +282,26 @@ function recordAudio() {
             $("#recordBtn > .fa-microphone").addClass("text-danger");
             $("#recordBtn > .fa-microphone").removeClass("text-white");
         });
+    }
+}
+
+function verifyMessage(e) {
+    let message = $("#messageBox").val();
+
+    if (message.length) {
+        let username = localStorage.getItem("username");
+        let chatroom = window.location.pathname;
+        
+        $("#messageBtn").removeClass("d-none");
+        $("#recordBtn").addClass("d-none");
+        
+        checkForEnter(e, sendMessage);
+
+        socket.emit('user_typing', chatroom, username);
+    }
+    else {
+        $("#messageBtn").addClass("d-none");
+        $("#recordBtn").removeClass("d-none");
     }
 }
 

@@ -12,13 +12,16 @@
     <link rel="icon" type="image/x-icon" href="/content/images/favicon.ico">
 </head>
 
-<body>
+<body class="listen-clipboard">
     <div class="background">
         <div class="content">
             <div class="row">
                 <div class="col-lg-2 col-md-2 col-1"></div>
                 <div class="col-lg-8 col-md-8 col-10">
-                    <div class="card messages">
+                    <div class="card messages position-relative">
+                        <div class="users-typing d-none">
+                            User is typing...
+                        </div>
                         <div class="card-body d-flex flex-column" id="messagesArea">
                             {% set last_user = namespace(value='') %}
                             {% for message in messages %}
@@ -48,19 +51,22 @@
                             <div id="MessageBoxDiv" class="d-flex flex-row">
                                 <input id="sendFiles" class="d-none" type="file" onchange="validateFiles(this)">
                                 <button class="remove-style me-3" type="button" onclick="$('#sendFiles').click()"><i class="fa-solid fa-plus text-white fa-xl"></i></button>
+                                
                                 <input placeholder="Type a message" id="messageBox" type="text"
-                                    class="form-control me-3" onkeyup="checkForEnter(event, sendMessage)">
-                                <button id="recordBtn" class="remove-style me-3" type="button" onclick="recordAudio();"><i class="fa-solid fa-microphone text-white fa-xl"></i></button>
-                                <button type="button" onclick="sendMessage()" class="btn btn-primary fit-content"
+                                    class="form-control me-3" onkeyup="verifyMessage(event)">
+
+                                <button id="recordBtn" class="remove-style" type="button" onclick="recordAudio();"><i class="fa-solid fa-microphone text-white fa-xl"></i></button>
+                                
+                                <button type="button" onclick="sendMessage()" class="remove-style d-none"
                                     id="messageBtn">
-                                    <i class="fa-solid fa-paper-plane"></i></button>
+                                    <i class="fa-solid fa-paper-plane text-white fa-xl"></i></button>
                             </div>
                             <div id="SelectedFileDiv" class="d-flex flex-row d-none">
                                 <button type="button" class="btn-close btn-close-white m-auto" onclick="unselectFiles()"></button>
                                 <span class="w-100 ms-3 my-auto text-white">Send files</span>    
-                                <button type="button" onclick="sendFile()" class="btn btn-primary fit-content"
+                                <button type="button" onclick="sendFile()" class="remove-style"
                                     id="FileBtn">
-                                    <i class="fa-solid fa-paper-plane"></i>
+                                    <i class="fa-solid fa-paper-plane text-white fa-xl"></i>
                                 </button>
                             </div>
                         </div>

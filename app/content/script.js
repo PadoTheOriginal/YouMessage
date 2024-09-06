@@ -1,9 +1,11 @@
-const socket = io();
+const socket = io.connect(null, {port: 7979, rememberTransport: false, transports: ['websocket'], upgrade: false});
 var selected_files = [];
 var recording = false;
 var recorder;
 var users_typing = [];
 var users_typing_timeouts = [];
+var oncall = false;
+var chatroom = window.location.pathname;
 
 $(function () {
     validateUsername();
@@ -13,17 +15,29 @@ $(function () {
 
     socket.on("connect", () => {
         console.log("connected");
+
+        username = localStorage.getItem("username")
+
+        if (username.length > 0)
+            socket.emit('user_connected', chatroom, username);
     });
 
     socket.on("disconnect", () => {
         console.log("disconnected");
     });
 
-    socket.on(`new_message${window.location.pathname}`, function (obj) {
+    window.onbeforeunload = function () {
+        socket.emit('user_disconnected', chatroom, username);
+    }
+
+    socket.on(`new_message${chatroom}`, function (obj) {
         let message = obj.Message;
         let notificationBody = message.Value;
 
-        GenerateMessage(message, message.Type);
+        if (message.Type == "Announce")
+            GenerateAnnouncement(message);
+        else
+            GenerateMessage(message, message.Type);
 
         if (message.Type == 'Image')
             notificationBody = 'Sent you an Image';
@@ -37,34 +51,36 @@ $(function () {
         if (message.User != localStorage.getItem("username")) {
             askPermissionToSendNotification();
 
-            document.getElementById('messageAudio').play();
+            if (message.Type == "Announce")
+                document.getElementById('announceAudio').play();
+            else
+                document.getElementById('messageAudio').play();
 
             if (document.hidden) // Only show if user is not on website
                 new Notification(message.User, { body: notificationBody });
         }
     });
 
-    socket.on(`user_typing${window.location.pathname}`, function (obj) {
+    socket.on(`user_typing${chatroom}`, function (obj) {
         let user_typing = obj.Username;
-        let username = localStorage.getItem("username");
 
-        if (!users_typing.includes(user_typing) && user_typing != username) {
+        if (!users_typing.includes(user_typing)) {
             users_typing.push(user_typing);
 
             setTimeout(function () {
                 users_typing.splice(users_typing.indexOf(user_typing), 1)
             }, 1000)
 
-            users_typing.sort(function(a, b){
+            users_typing.sort(function (a, b) {
                 var nameA = a.toLowerCase(), nameB = b.toLowerCase();
                 if (nameA < nameB) //sort string ascending
-                 return -1;
+                    return -1;
                 if (nameA > nameB)
-                 return 1;
+                    return 1;
                 return 0; //default return value (no sorting)
             });
 
-            if (users_typing.length == 1) 
+            if (users_typing.length == 1)
                 $(".users-typing").text(users_typing[0] + " is typing...");
             else
                 $(".users-typing").text(users_typing.join(" and ") + " are typing...");
@@ -77,9 +93,23 @@ $(function () {
             users_typing_timeouts = [];
 
             users_typing_timeouts.push(setTimeout(function () {
-                    $(".users-typing").addClass("d-none");
-                }, 
-            1800));
+                $(".users-typing").addClass("d-none");
+            },
+                1800));
+        }
+    });
+
+    socket.on(`call_data${chatroom}`, function (obj) {
+        if (oncall) {
+            var newData = obj.Stream.split(";");
+            newData[0] = "data:audio/ogg;";
+            newData = newData[0] + newData[1];
+
+            var audio = new Audio(newData);
+            if (!audio || document.hidden) {
+                return;
+            }
+            audio.play();
         }
     });
 
@@ -160,7 +190,7 @@ function saveUsername() {
         return 0;
     }
 
-    socket.emit('save_username', username, (username_with_id) => {
+    socket.emit('save_username', chatroom, username, (username_with_id) => {
         if (!username_with_id.trim().length) {
             $("#username").focus();
             return 0;
@@ -187,8 +217,6 @@ function sendMessage() {
         $("#messageBox").focus();
         return 0;
     }
-
-    let chatroom = window.location.pathname;
 
     socket.emit('send_message', chatroom, username, message);
     $("#messageBox").val("");
@@ -290,11 +318,10 @@ function verifyMessage(e) {
 
     if (message.length) {
         let username = localStorage.getItem("username");
-        let chatroom = window.location.pathname;
-        
+
         $("#messageBtn").removeClass("d-none");
         $("#recordBtn").addClass("d-none");
-        
+
         checkForEnter(e, sendMessage);
 
         socket.emit('user_typing', chatroom, username);
@@ -349,4 +376,52 @@ function GenerateMessage(message, messageType) {
 
     document.getElementById('messagesArea').insertAdjacentHTML('beforeend', htmlTR)
     document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+}
+
+function GenerateAnnouncement(message) {
+    let htmlTR = `
+        <span class="announce">${message.Value}</span>
+    `;
+
+    document.getElementById('messagesArea').insertAdjacentHTML('beforeend', htmlTR)
+    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+}
+
+
+function JoinCall() {
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then((stream) => {
+            var mediaRecorder = new MediaRecorder(stream);
+            var audioChunks = [];
+            oncall = true
+
+            mediaRecorder.addEventListener("dataavailable", function (event) {
+                audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener("stop", function () {
+                var audioBlob = new Blob(audioChunks);
+                audioChunks = [];
+                var fileReader = new FileReader();
+                fileReader.readAsDataURL(audioBlob);
+                fileReader.onloadend = function () {
+                    var base64String = fileReader.result;
+
+                    let username = localStorage.getItem("username");
+                    let chatroom = window.location.pathname;
+
+                    socket.emit("call_data", chatroom, username, base64String);
+                };
+
+                mediaRecorder.start();
+                setTimeout(function () {
+                    mediaRecorder.stop();
+                }, 1000);
+            });
+
+            mediaRecorder.start();
+            setTimeout(function () {
+                mediaRecorder.stop();
+            }, 1000);
+        });
 }

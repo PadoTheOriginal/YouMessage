@@ -25,26 +25,31 @@
                         <div class="card-body d-flex flex-column" id="messagesArea">
                             {% set last_user = namespace(value='') %}
                             {% for message in messages %}
-                                {% if message.User != last_user.value %}
-                                    <span class="username">{{message.User}}</span>
-                                {% endif %}
-                                <div class="message" username="{{message.User}}">
-                                    {% if message.Type == "Message" %}
-                                        <p class="message-content">{{message.Value}}</p>
-                                    {% elif message.Type == "Image" %}
-                                        <p class="message-content"><img src="/content/shared_files/{{message.Value}}" alt="{{message.Value}}" onclick="this.requestFullscreen()"></p>
-                                    {% elif message.Type == "Audio" %}
-                                        <p class="message-content"><audio src="/content/shared_files/{{message.Value}}" controls></audio></p>
-                                    {% elif message.Type == "Video" %}
-                                        <p class="message-content"><video src="/content/shared_files/{{message.Value}}" controls></video></p>
-                                    {% elif message.Type == "File" %}
-                                        <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> {{message.Value}}</span></p>
-                                        <a class="btn btn-primary btn-download" href="/content/shared_files/{{message.Value}}" target="_blank" download="true">
-                                            <i class="fa-solid fa-download text-white"></i>
-                                        </a>
+                                {% if message.message_type != "Announce" %}
+                                    {% if message.user.username != last_user.value %}
+                                        <span class="username">{{message.user.username}}</span>
                                     {% endif %}
-                                </div>
-                                {% set last_user.value = message.User %}
+                                    <div class="message" username="{{message.user.username}}">
+                                        {% if message.message_type == "Message" %}
+                                            <p class="message-content">{{message.value}}</p>
+                                        {% elif message.message_type == "Image" %}
+                                            <p class="message-content"><img src="/content/shared_files/{{message.value}}" alt="{{message.value}}" onclick="this.requestFullscreen()"></p>
+                                        {% elif message.message_type == "Audio" %}
+                                            <p class="message-content"><audio src="/content/shared_files/{{message.value}}" controls></audio></p>
+                                        {% elif message.message_type == "Video" %}
+                                            <p class="message-content"><video src="/content/shared_files/{{message.value}}" controls></video></p>
+                                        {% elif message.message_type == "File" %}
+                                            <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> {{message.value}}</span></p>
+                                            <a class="btn btn-primary btn-download" href="/content/shared_files/{{message.value}}" target="_blank" download="true">
+                                                <i class="fa-solid fa-download text-white"></i>
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                    {% set last_user.value = message.user.username %}
+                                {% elif message.message_type == "Announce" %}
+                                    <span class="announce">{{message.value}}</span>
+                                    {% set last_user.value = '' %}
+                                {% endif %}
                             {% endfor %}
                         </div>
                         <div class="card-footer">
@@ -72,7 +77,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-1"></div>
+                <div class="col-lg-2 col-md-2 col-1">
+                    <button type="button" onclick="JoinCall()" class="btn btn-primary mt-5">
+                            <i class="fa-solid fa-phone text-white fa-xl"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -95,6 +104,7 @@
             </div>
         </div>
         <audio class="d-none" id="messageAudio" src="/content/audios/new_message.wav"></audio>
+        <audio class="d-none" id="announceAudio" src="/content/audios/a.mp3"></audio>
     </div>
     <script src="/content/libs/socket.io/socket.io.min.js"></script>
     <script src="/content/libs/jquery/jquery.min.js"></script>

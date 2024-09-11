@@ -5,7 +5,7 @@ class Chat():
         self.chatroom:str = chatroom 
         self.messages:list[Message] = []
         self.users_in_chat:list[User] = []
-        self.users_in_chat:list[User] = []
+        self.users_in_call:list[User] = []
         
     def is_user_in_chat(self, username:str) -> bool:
         return any(user for user in self.users_in_chat if user.username == username)
@@ -26,7 +26,22 @@ class Chat():
     
     def get_all_messages(self) -> list[Message]:
         return self.messages
+    
+    def get_all_messages_JSON(self) -> list[dict]:
+        return [message.toJSON() for message in self.messages]
         
+    def add_user_in_call(self, user:User) -> User:
+        self.users_in_call.append(user)
+        return user
+    
+    def remove_user_from_call(self, user_to_remove:User):
+        self.users_in_call.remove(user_to_remove)
+        
+    def get_usernames_of_users_in_call(self) -> list[str]:
+        return [user.username for user in self.users_in_call]
+        
+    def get_users_in_call_JSON(self) -> list[dict]:
+        return [user.toJSON() for user in self.users_in_call]
     
 class Chats():
     def __init__(self):

@@ -5,7 +5,9 @@ class User():
     def __init__(self, username:str, sid:str):
         self.username:str = username
         self.sid:str = sid
-        
+    
+    def toJSON(self) -> dict:
+        return {"Username": self.username, "Sid": self.sid}
         
 class Users():
     def __init__(self):

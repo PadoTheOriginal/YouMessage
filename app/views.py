@@ -33,11 +33,13 @@ def index(chat):
     
     chat = '/' + chat
     
-    chatroom = chats.get_chat(chat)
+    chats.get_chat(chat)
     
-    response = make_response(render_template("index.jinja2", messages=chatroom.messages))
+    response = make_response(render_template("index.jinja2"))
                              
     response.set_cookie('home', expires=0)
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
     
     return response
 
@@ -95,6 +97,8 @@ def user_connected(chat:str, username:str):
         
         emit(f'users_in_chat{chat}', {"Users": chatroom.usernames_of_users_in_chat()}, broadcast=True, include_self=True)
     
+    return chatroom.get_all_messages_JSON()
+
 @socketio.on("send_message")
 def send_message(chat:str, username:str, message:str):
     global chats, users
@@ -138,19 +142,7 @@ def user_typing(chat:str, username:str):
 
 @socketio.on("call_data")
 def call_data(chat:str, username:str, stream:str):
-    global chats, users
-    
-    if ((chat.isspace() or len(chat) == 0) or 
-        (username.isspace() or len(username) == 0)):
-        return False
-    
-    if (len(username) > 70):
-        return False
-    
-    if (not users.exists(username)):
-        return False
-    
-    emit(f'call_data{chat}', {"Stream": stream}, broadcast=True, include_self=False)
+    emit('call_data', {"Username": username, "Stream": stream}, broadcast=True, include_self=False, room=chat)
     
     return True
 
@@ -170,8 +162,13 @@ def join_call(chat:str, username:str):
     
     if chat not in chats:
         chats[chat] = []
+    
+    chatroom = chats.get_chat(chat)
+    user = users.get_user_by_username(username)
+    chatroom.add_user_in_call(user)
 
     join_room(chat)
+    emit("joined_call", {"Users": chatroom.get_users_in_call_JSON()}, broadcast=True, room=chat)
 
 @socketio.on("leave_call")
 def leave_call(chat:str, username:str):
@@ -189,8 +186,13 @@ def leave_call(chat:str, username:str):
     
     if chat not in chats:
         chats[chat] = []
-
+    
+    chatroom = chats.get_chat(chat)
+    user = users.get_user_by_username(username)
+    chatroom.remove_user_from_call(user)
+    
     leave_room(chat)
+    emit("left_call", user.toJSON(), broadcast=True, include_self=False, room=chat)
 
 @socketio.on("send_file")
 def send_file(chat:str, username:str, filename:str, filedata:bytes):
@@ -244,7 +246,7 @@ def save_username(chat:str, username:str):
     global chats, users
     
     if (len(username) > 64 or (username.isspace() or len(username) == 0)):
-        return ""
+        return { "username_with_id": "", "messages": [] }
     
     while True:
         username_id = randint(1, 9999)
@@ -262,7 +264,7 @@ def save_username(chat:str, username:str):
 
                 emit(f'new_message{chat}', {"Message": new_message.toJSON()}, broadcast=True, include_self=True)
 
-            return username_with_id
+            return { "username_with_id": username_with_id, "messages": chatroom.get_all_messages_JSON() }
         
 @socketio.on("validate_username")
 def validate_username(username:str):

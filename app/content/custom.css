@@ -168,6 +168,25 @@ body, html {
     z-index: 5;
 }
 
+.call-controls {
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    padding: 10px 5px;
+    color: aliceblue;
+    background-color: #000;
+    border-radius: 2px;
+    z-index: 5;
+}
+
+.center-controls {
+    width: fit-content;
+}
+
+#leaveCall > i {
+    transform: rotate(135deg);
+}
+
 .announce {
     color: lightblue;
     margin-left: auto;

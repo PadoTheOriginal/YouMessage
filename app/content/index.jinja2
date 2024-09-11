@@ -6,7 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>You Message</title>
     <link rel="stylesheet" href="/content/libs/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/content/libs/font-awesome/css/all.min.css"/>
+    <script type="text/javascript">
+      window.FontAwesomeConfig = { autoReplaceSvg: false }
+    </script>
+    <link rel="stylesheet" href="/content/libs/font-awesome/css/all.min.css" />
     <link rel="stylesheet" href="/content/libs/js-snackbar-master/dist/js-snackbar.min.css">
     <link rel="stylesheet" href="/content/custom.css">
     <link rel="icon" type="image/x-icon" href="/content/images/favicon.ico">
@@ -22,55 +25,39 @@
                         <div class="users-typing d-none">
                             User is typing...
                         </div>
+                        <div class="call-controls d-none">
+                            <div class="center-controls mx-auto">
+                                <button id="micBtn" class="remove-style" type="button" onclick="toggleMicrophone();">
+                                    <i class="fa-solid fa-microphone-slash text-white fa-xl"></i>
+                                </button>
+                                <button id="leaveCall" class="btn btn-danger rounded-circle ms-3" type="button" onclick="leaveCall();">
+                                    <i class="fa-solid fa-phone text-white"></i>
+                                </button>
+                            </div>
+                        </div>
                         <div class="card-body d-flex flex-column" id="messagesArea">
-                            {% set last_user = namespace(value='') %}
-                            {% for message in messages %}
-                                {% if message.message_type != "Announce" %}
-                                    {% if message.user.username != last_user.value %}
-                                        <span class="username">{{message.user.username}}</span>
-                                    {% endif %}
-                                    <div class="message" username="{{message.user.username}}">
-                                        {% if message.message_type == "Message" %}
-                                            <p class="message-content">{{message.value}}</p>
-                                        {% elif message.message_type == "Image" %}
-                                            <p class="message-content"><img src="/content/shared_files/{{message.value}}" alt="{{message.value}}" onclick="this.requestFullscreen()"></p>
-                                        {% elif message.message_type == "Audio" %}
-                                            <p class="message-content"><audio src="/content/shared_files/{{message.value}}" controls></audio></p>
-                                        {% elif message.message_type == "Video" %}
-                                            <p class="message-content"><video src="/content/shared_files/{{message.value}}" controls></video></p>
-                                        {% elif message.message_type == "File" %}
-                                            <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> {{message.value}}</span></p>
-                                            <a class="btn btn-primary btn-download" href="/content/shared_files/{{message.value}}" target="_blank" download="true">
-                                                <i class="fa-solid fa-download text-white"></i>
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                    {% set last_user.value = message.user.username %}
-                                {% elif message.message_type == "Announce" %}
-                                    <span class="announce">{{message.value}}</span>
-                                    {% set last_user.value = '' %}
-                                {% endif %}
-                            {% endfor %}
                         </div>
                         <div class="card-footer">
                             <div id="MessageBoxDiv" class="d-flex flex-row">
-                                <input id="sendFiles" class="d-none" type="file" onchange="validateFiles(this)">
-                                <button class="remove-style me-3" type="button" onclick="$('#sendFiles').click()"><i class="fa-solid fa-plus text-white fa-xl"></i></button>
-                                
+                                <input id="sendFiles" class="d-none" type="file" onchange="validateFiles(this)" multiple>
+                                <button class="remove-style me-3" type="button" onclick="$('#sendFiles').click()"><i
+                                        class="fa-solid fa-plus text-white fa-xl"></i></button>
+
                                 <input placeholder="Type a message" id="messageBox" type="text"
                                     class="form-control me-3" onkeyup="verifyMessage(event)">
 
-                                <button id="recordBtn" class="remove-style" type="button" onclick="recordAudio();"><i class="fa-solid fa-microphone text-white fa-xl"></i></button>
-                                
+                                <button id="recordBtn" class="remove-style" type="button" onclick="recordAudio();"><i
+                                        class="fa-solid fa-microphone text-white fa-xl"></i></button>
+
                                 <button type="button" onclick="sendMessage()" class="remove-style d-none"
                                     id="messageBtn">
                                     <i class="fa-solid fa-paper-plane text-white fa-xl"></i></button>
                             </div>
                             <div id="SelectedFileDiv" class="d-flex flex-row d-none">
-                                <button type="button" class="btn-close btn-close-white m-auto" onclick="unselectFiles()"></button>
-                                <span class="w-100 ms-3 my-auto text-white">Send files</span>    
-                                <button type="button" onclick="sendFile()" class="remove-style"
-                                    id="FileBtn">
+                                <button type="button" class="btn-close btn-close-white m-auto"
+                                    onclick="unselectFiles()"></button>
+                                <span class="w-100 ms-3 my-auto text-white">Send files</span>
+                                <button type="button" onclick="sendFile()" class="remove-style" id="FileBtn">
                                     <i class="fa-solid fa-paper-plane text-white fa-xl"></i>
                                 </button>
                             </div>
@@ -78,8 +65,8 @@
                     </div>
                 </div>
                 <div class="col-lg-2 col-md-2 col-1">
-                    <button type="button" onclick="JoinCall()" class="btn btn-primary mt-5">
-                            <i class="fa-solid fa-phone text-white fa-xl"></i>
+                    <button id="joinCallBtn" type="button" onclick="joinCall()" class="btn btn-primary mt-5">
+                        <i class="fa-solid fa-phone text-white fa-xl"></i>
                     </button>
                 </div>
             </div>
@@ -107,10 +94,12 @@
         <audio class="d-none" id="announceAudio" src="/content/audios/a.mp3"></audio>
     </div>
     <script src="/content/libs/socket.io/socket.io.min.js"></script>
+    <script src="/content/libs/socket.io/socket.io.p2p.min.js"></script>
     <script src="/content/libs/jquery/jquery.min.js"></script>
     <script src="/content/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="/content/libs/font-awesome/js/all.min.js"></script>
     <script src="/content/libs/js-snackbar-master/dist/js-snackbar.min.js"></script>
-    <script src="/content/script.js"></script>
+    <script src="/content/js/script.js"></script>
 </body>
+
 </html>

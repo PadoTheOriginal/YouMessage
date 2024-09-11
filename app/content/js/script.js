@@ -1,16 +1,19 @@
-const socket = io.connect(null, {port: 7979, rememberTransport: false, transports: ['websocket'], upgrade: false});
+const socket = io.connect(null, { port: 7979, rememberTransport: false, transports: ['websocket'], upgrade: false });
 var selected_files = [];
 var recording = false;
+var muted = true;
+var oncall = false;
 var recorder;
 var users_typing = [];
 var users_typing_timeouts = [];
-var oncall = false;
 var chatroom = window.location.pathname;
+var playbackBuffers = {};
+var audioWorkletNodes = {};
+var ctx;
+var audiostream;
 
 $(function () {
     validateUsername();
-    alignMessages();
-
     setTimeout(askPermissionToSendNotification, 2000);
 
     socket.on("connect", () => {
@@ -18,8 +21,8 @@ $(function () {
 
         username = localStorage.getItem("username")
 
-        if (username.length > 0)
-            socket.emit('user_connected', chatroom, username);
+        if (username !== null && username != "null")
+            socket.emit('user_connected', chatroom, username, GenerateMessages);
     });
 
     socket.on("disconnect", () => {
@@ -31,86 +34,98 @@ $(function () {
     }
 
     socket.on(`new_message${chatroom}`, function (obj) {
-        let message = obj.Message;
-        let notificationBody = message.Value;
+        let username = localStorage.getItem("username");
+        if (username !== null && username != "null") {
 
-        if (message.Type == "Announce")
-            GenerateAnnouncement(message);
-        else
-            GenerateMessage(message, message.Type);
-
-        if (message.Type == 'Image')
-            notificationBody = 'Sent you an Image';
-        if (message.Type == 'Audio')
-            notificationBody = 'Sent you an Audio';
-        if (message.Type == 'Video')
-            notificationBody = 'Sent you a Video';
-        if (message.Type == 'File')
-            notificationBody = 'Sent you a File';
-
-        if (message.User != localStorage.getItem("username")) {
-            askPermissionToSendNotification();
+            let message = obj.Message;
+            let notificationBody = message.Value;
 
             if (message.Type == "Announce")
-                document.getElementById('announceAudio').play();
+                GenerateAnnouncement(message);
             else
-                document.getElementById('messageAudio').play();
+                GenerateMessage(message, message.Type);
 
-            if (document.hidden) // Only show if user is not on website
-                new Notification(message.User, { body: notificationBody });
+            if (message.Type == 'Image')
+                notificationBody = 'Sent you an Image';
+            if (message.Type == 'Audio')
+                notificationBody = 'Sent you an Audio';
+            if (message.Type == 'Video')
+                notificationBody = 'Sent you a Video';
+            if (message.Type == 'File')
+                notificationBody = 'Sent you a File';
+
+            if (message.User != username) {
+                askPermissionToSendNotification();
+
+                if (message.Type == "Announce")
+                    document.getElementById('announceAudio').play();
+                else
+                    document.getElementById('messageAudio').play();
+
+                if (document.hidden) // Only show if user is not on website
+                    new Notification(message.User, { body: notificationBody });
+            }
         }
     });
 
     socket.on(`user_typing${chatroom}`, function (obj) {
-        let user_typing = obj.Username;
+        let username = localStorage.getItem("username");
+        if (username !== null && username != "null") {
+            let user_typing = obj.Username;
 
-        if (!users_typing.includes(user_typing)) {
-            users_typing.push(user_typing);
+            if (!users_typing.includes(user_typing)) {
+                users_typing.push(user_typing);
 
-            setTimeout(function () {
-                users_typing.splice(users_typing.indexOf(user_typing), 1)
-            }, 1000)
+                setTimeout(function () {
+                    users_typing.splice(users_typing.indexOf(user_typing), 1)
+                }, 1000)
 
-            users_typing.sort(function (a, b) {
-                var nameA = a.toLowerCase(), nameB = b.toLowerCase();
-                if (nameA < nameB) //sort string ascending
-                    return -1;
-                if (nameA > nameB)
-                    return 1;
-                return 0; //default return value (no sorting)
-            });
+                users_typing.sort(function (a, b) {
+                    var nameA = a.toLowerCase(), nameB = b.toLowerCase();
+                    if (nameA < nameB) //sort string ascending
+                        return -1;
+                    if (nameA > nameB)
+                        return 1;
+                    return 0; //default return value (no sorting)
+                });
 
-            if (users_typing.length == 1)
-                $(".users-typing").text(users_typing[0] + " is typing...");
-            else
-                $(".users-typing").text(users_typing.join(" and ") + " are typing...");
+                if (users_typing.length == 1)
+                    $(".users-typing").text(users_typing[0] + " is typing...");
+                else
+                    $(".users-typing").text(users_typing.join(" and ") + " are typing...");
 
-            $(".users-typing").removeClass("d-none");
+                $(".users-typing").removeClass("d-none");
 
-            for (const timeout of users_typing_timeouts) {
-                clearTimeout(timeout);
+                for (const timeout of users_typing_timeouts) {
+                    clearTimeout(timeout);
+                }
+                users_typing_timeouts = [];
+
+                users_typing_timeouts.push(setTimeout(function () {
+                    $(".users-typing").addClass("d-none");
+                },
+                    1800));
             }
-            users_typing_timeouts = [];
-
-            users_typing_timeouts.push(setTimeout(function () {
-                $(".users-typing").addClass("d-none");
-            },
-                1800));
         }
     });
 
-    socket.on(`call_data${chatroom}`, function (obj) {
-        if (oncall) {
-            var newData = obj.Stream.split(";");
-            newData[0] = "data:audio/ogg;";
-            newData = newData[0] + newData[1];
-
-            var audio = new Audio(newData);
-            if (!audio || document.hidden) {
-                return;
-            }
-            audio.play();
+    socket.on(`call_data`, function (obj) {
+        if (playbackBuffers[obj.Username]) {
+            let buffer = new Float32Array(obj.Stream);
+            playbackBuffers[obj.Username].buffer.set(buffer, playbackBuffers[obj.Username].cursor);
+            playbackBuffers[obj.Username].cursor += buffer.length;
+            playbackBuffers[obj.Username].cursor %= buffer.length * 4;
         }
+    });
+
+    socket.on(`joined_call`, async function (obj) {
+        obj.Users.forEach(function (user) {
+            userJoinedCall(user.Username);
+        });
+    });
+
+    socket.on(`left_call`, async function (obj) {
+        userLeftCall(obj.Username);
     });
 
     $(".listen-clipboard").on('paste', function (e) {
@@ -146,20 +161,8 @@ function askPermissionToSendNotification() {
     });
 }
 
-function alignMessages() {
-    $('.username').each(function (i, e) {
-        if ($(e).text() == localStorage.getItem("username"))
-            $(e).addClass('ms-auto');
-    });
-
-    $('.message').each(function (i, e) {
-        if ($(e).attr("username") == localStorage.getItem("username"))
-            $(e).addClass('ms-auto');
-    });
-}
-
 function validateUsername() {
-    if (localStorage.getItem("username") == null) {
+    if (localStorage.getItem("username") == null || localStorage.getItem("username") == "null") {
         reinsertUsername();
         return false;
     }
@@ -169,7 +172,7 @@ function validateUsername() {
             reinsertUsername();
     });
 
-    if (localStorage.getItem("username") == null)
+    if (localStorage.getItem("username") == null || localStorage.getItem("username") == "null")
         return false;
 
     return true;
@@ -190,13 +193,16 @@ function saveUsername() {
         return 0;
     }
 
-    socket.emit('save_username', chatroom, username, (username_with_id) => {
-        if (!username_with_id.trim().length) {
+    socket.emit('save_username', chatroom, username, (obj) => {
+        if (!obj.username_with_id.trim().length) {
             $("#username").focus();
             return 0;
         }
-        localStorage.setItem("username", username_with_id);
+
+        localStorage.setItem("username", obj.username_with_id);
         $("#modalUsername").modal('hide');
+
+        GenerateMessages(obj.messages);
     });
 }
 
@@ -217,14 +223,14 @@ function sendMessage() {
         $("#messageBox").focus();
         return 0;
     }
-
+    
     socket.emit('send_message', chatroom, username, message);
     $("#messageBox").val("");
-
+    
     setTimeout(function () {
         $("#messageBtn").addClass("d-none");
         $("#recordBtn").removeClass("d-none");
-    }, 500);
+    }, 100);
 }
 
 function sendFile() {
@@ -352,20 +358,20 @@ function GenerateMessage(message, messageType) {
         htmlTR += `<p class="message-content">${message.Value}</p>`;
     else if (messageType == "Image")
         htmlTR += `
-                <p class="message-content"><img src="/content/shared_files/${message.Value}" alt="${message.Value}" onclick="this.requestFullscreen()"></p>
+                <p class="message-content"><img src="/content/shared_files/${message.Value}?v=${Math.random()}" alt="${message.Value}" onclick="this.requestFullscreen()"></p>
                 `;
     else if (messageType == "Audio")
         htmlTR += `
-                <p class="message-content"><audio src="/content/shared_files/${message.Value}" controls></audio></p>
+                <p class="message-content"><audio src="/content/shared_files/${message.Value}?v=${Math.random()}" controls></audio></p>
                 `;
     else if (messageType == "Video")
         htmlTR += `
-                <p class="message-content"><video src="/content/shared_files/${message.Value}" controls></video></p>
+                <p class="message-content"><video src="/content/shared_files/${message.Value}?v=${Math.random()}" controls></video></p>
                 `;
     else if (messageType == "File")
         htmlTR += `
                 <p class="message-content"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> ${message.Value}</span></p>
-                <a class="btn btn-primary btn-download" href="/content/shared_files/${message.Value}" target="_blank" download="true">
+                <a class="btn btn-primary btn-download" href="/content/shared_files/${message.Value}?v=${Math.random()}" target="_blank" download="true">
                     <i class="fa-solid fa-download text-white"></i>
                 </a>
                 `;
@@ -387,41 +393,86 @@ function GenerateAnnouncement(message) {
     document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
 }
 
+function GenerateMessages(messages) {
+    for (const message of messages) {
+        if (message.Type == "Announce")
+            GenerateAnnouncement(message);
+        else
+            GenerateMessage(message, message.Type);
+    }
+}
 
-function JoinCall() {
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-        .then((stream) => {
-            var mediaRecorder = new MediaRecorder(stream);
-            var audioChunks = [];
-            oncall = true
+function joinCall() {
+    ctx = new AudioContext();
 
-            mediaRecorder.addEventListener("dataavailable", function (event) {
-                audioChunks.push(event.data);
-            });
+    let username = localStorage.getItem("username");
 
-            mediaRecorder.addEventListener("stop", function () {
-                var audioBlob = new Blob(audioChunks);
-                audioChunks = [];
-                var fileReader = new FileReader();
-                fileReader.readAsDataURL(audioBlob);
-                fileReader.onloadend = function () {
-                    var base64String = fileReader.result;
+    socket.emit("join_call", chatroom, username);
 
-                    let username = localStorage.getItem("username");
-                    let chatroom = window.location.pathname;
+    $("#joinCallBtn").addClass('d-none');
+    $(".call-controls").removeClass('d-none');
+}
 
-                    socket.emit("call_data", chatroom, username, base64String);
-                };
+function leaveCall() {
+    let username = localStorage.getItem("username");
 
-                mediaRecorder.start();
-                setTimeout(function () {
-                    mediaRecorder.stop();
-                }, 1000);
-            });
+    socket.emit("leave_call", chatroom, username);
 
-            mediaRecorder.start();
-            setTimeout(function () {
-                mediaRecorder.stop();
-            }, 1000);
-        });
+    $("#joinCallBtn").removeClass('d-none');
+    $(".call-controls").addClass('d-none');
+
+    src.context.close()
+    src.disconnect()
+    audiostream.getTracks().forEach(function (track) { track.stop() });
+}
+
+async function toggleMicrophone() {
+    muted = !muted;
+
+    $("#micBtn > i").toggleClass("fa-microphone-slash");
+    $("#micBtn > i").toggleClass("fa-microphone");
+
+    audiostream = await navigator.mediaDevices.getUserMedia({
+        audio: true, video: false
+    });
+
+    await ctx.audioWorklet.addModule('./content/js/record-processor.js');
+    window.src = ctx.createMediaStreamSource(audiostream);
+
+    let processor = new AudioWorkletNode(ctx, 'record-processor');
+
+    let recordBuffer;
+
+    processor.port.onmessage = (e) => {
+        if (e.data.eventType === 'buffer') {
+            recordBuffer = new Float32Array(e.data.buffer);
+        }
+        if (e.data.eventType === 'data' && !muted) {
+            let username = localStorage.getItem("username");
+            socket.emit('call_data', chatroom, username, recordBuffer.slice(e.data.start, e.data.end).buffer);
+        }
+    }
+
+    src.connect(processor);
+}
+
+async function userJoinedCall(username) {
+    if (!audioWorkletNodes[username]) {
+        await ctx.audioWorklet.addModule('./content/js/playback-processor.js');
+        audioWorkletNodes[username] = new AudioWorkletNode(ctx, 'playback-processor');
+
+        audioWorkletNodes[username].port.onmessage = (e) => {
+            if (e.data.eventType === 'buffer') {
+                playbackBuffers[username] = { cursor: 0, buffer: new Float32Array(e.data.buffer) };
+            }
+        }
+
+        audioWorkletNodes[username].connect(ctx.destination);
+    }
+}
+
+function userLeftCall(username) {
+    audioWorkletNodes[username].disconnect();
+    audioWorkletNodes[username] = undefined;
+    playbackBuffers[username] = undefined;
 }

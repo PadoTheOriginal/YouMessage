@@ -59,6 +59,10 @@ body, html {
     width: 100%;
 }
 
+.card-footer{
+    background-color:#242424 ;
+}
+
 .messages {
     background-color:#353535;
     color: rgb(112, 108, 97);
@@ -81,9 +85,7 @@ body, html {
     background-color:#2965b4;
     color: aliceblue;
     border-radius: 13px;
-    padding-left: 12px;
-    padding-right: 12px;
-    padding-top: 12px;
+    padding: 3px;
     flex-direction: column;
     display: block;
     max-width: 70%;
@@ -106,26 +108,47 @@ body, html {
     left: -50px;
     border-radius: 50%;
 }
+/* 
+.message > copyButton:{
+    size: 20px;
+
+} */
 
 .message img {
     max-width: 100%;
     max-height: 50vh;
+    border-radius: 10px;
 }
 
 .message video {
     max-width: 100%;
     max-height: 50vh;
+    border-radius: 10px;
 }
 
 .message audio {
     max-width: 100%;
+    border-radius: 10px;
+}
+
+.message-content.text {
+    padding: 10px;
+    margin: 0px;
+}
+
+.message-content {
+    margin: 0px;
 }
 
 .message-content span {
     background-color: #1d282f;
     padding: 10px;
-    border-radius: 5px;
+    border-radius: 10px;
     color: #fff;
+}
+
+.message-content.file {
+    padding: 10px 0px;
 }
 
 .username {   
@@ -163,7 +186,7 @@ body, html {
     width: 100%;
     padding: 0px 5px;
     color: aliceblue;
-    background-color: #1a1a1a;
+    background-color: #5c5c5c;
     border-radius: 2px;
     z-index: 5;
 }
@@ -181,6 +204,10 @@ body, html {
 
 .center-controls {
     width: fit-content;
+}
+
+.plyr {
+    border-radius: 10px;
 }
 
 #leaveCall > i {
@@ -219,4 +246,9 @@ body, html {
 * {
     scrollbar-color: #777777 #4d4d4d00;
     scrollbar-width: thin;
+}
+
+.plyr:fullscreen video {
+    height: 100%;
+    max-height: 100vh;
 }

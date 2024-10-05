@@ -93,7 +93,7 @@ def user_connected(chat:str, username:str):
         
         new_message = chatroom.add_new_message(Message("Announce", f"{username} has joined the chat", user))
         
-        emit(f'new_message{chat}', {"Message": new_message.toJSON()}, broadcast=True, include_self=True)
+        emit(f'new_message{chat}', {"Message": new_message.toJSON()}, broadcast=True, include_self=False)
         
         emit(f'users_in_chat{chat}', {"Users": chatroom.usernames_of_users_in_chat()}, broadcast=True, include_self=True)
     
@@ -210,7 +210,7 @@ def send_file(chat:str, username:str, filename:str, filedata:bytes):
         return False
     
     chatroom = chats.get_chat(chat)
-    
+
     new_filename = filename
     fileextention = filename.split('.')[-1].lower()
     
@@ -223,7 +223,7 @@ def send_file(chat:str, username:str, filename:str, filedata:bytes):
                 
         new_filename = f'({i}) {filename}'
       
-    if fileextention in ['png', 'jpg', 'jpeg', 'gif', 'webp']:  
+    if fileextention in ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'tiff']:  
         new_message = Message("Image", new_filename, users.get_user_by_username(username))
     
     elif fileextention in ['wav', 'mp3', 'm4a', 'ogg', 'aac', 'aiff']:

@@ -10,7 +10,7 @@ if __name__ == "__main__":
     
     if os.path.exists('../certificates'):
         print("Running on HTTPS")
-        eventlet.wsgi.server(eventlet.wrap_ssl(eventlet.listen(('0.0.0.0', 7979)), keyfile='../certificates/private.key', certfile='../certificates/pado_ddnsking_com.pem', server_side=True), app)
+        eventlet.wsgi.server(eventlet.wrap_ssl(eventlet.listen(('0.0.0.0', 7979)), keyfile='../certificates/private.key', certfile='../certificates/certificate.pem', server_side=True), app)
 
     else:
         print("Running on HTTP")

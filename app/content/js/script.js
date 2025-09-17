@@ -1,4 +1,4 @@
-const socket = io.connect(null, { port: 7979, rememberTransport: false, transports: ['websocket'], upgrade: false });
+const socket = io.connect(null, {port: 7979, rememberTransport: false, transports: ['websocket'], upgrade: false});
 var selected_files = [];
 var recording = false;
 var muted = true;
@@ -12,7 +12,8 @@ var audioWorkletNodes = {};
 var loadChatMessages = true;
 var ctx;
 var audiostream;
-var messagenumber = 0;
+var reply_message;
+var last_user;
 
 $(function () {
     validateUsername();
@@ -44,9 +45,10 @@ $(function () {
             let message = obj.Message;
             let notificationBody = message.Value;
 
-            if (message.Type == "Announce")
+            if (message.Type == "Announce") {
                 GenerateAnnouncement(message);
-            else
+            }
+            else if (message.Type != "Announce")
                 GenerateMessage(message, message.Type);
 
             if (message.Type == 'Image')
@@ -67,7 +69,7 @@ $(function () {
                     document.getElementById('messageAudio').play();
 
                 if (document.hidden) // Only show if user is not on website
-                    new Notification(message.User, { body: notificationBody });
+                    new Notification(message.User, {body: notificationBody});
             }
         }
     });
@@ -106,8 +108,8 @@ $(function () {
                 users_typing_timeouts = [];
 
                 users_typing_timeouts.push(setTimeout(function () {
-                    $(".users-typing").addClass("d-none");
-                },
+                        $(".users-typing").addClass("d-none");
+                    },
                     1800));
             }
         }
@@ -148,6 +150,25 @@ $(function () {
 
         selectFiles(clipboardData.files);
     });
+
+    let chatName = document.getElementById('chatroom');
+    chatName.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Avoid line breaks
+
+            if (!chatName.textContent.length){
+                document.location.href = "/"
+                return 0;
+            }
+
+            if (!chatName.textContent.startsWith("/")) {
+                document.location.href = "/" + chatName.textContent;
+                return 0;
+            }
+
+            document.location.href = chatName.textContent;
+        }
+    });
 });
 
 function askPermissionToSendNotification() {
@@ -156,13 +177,13 @@ function askPermissionToSendNotification() {
 
     Notification.requestPermission().then();
 
-    new SnackBar({
-        message: "Please allow notifications in your browser.",
-        status: "warning",
-        position: "tl",
-        dismissible: true,
-        timeout: 10000
-    });
+    // new SnackBar({
+    //     message: "Please allow notifications in your browser.",
+    //     status: "warning",
+    //     position: "tl",
+    //     dismissible: true,
+    //     timeout: 10000
+    // });
 }
 
 function validateUsername() {
@@ -228,8 +249,9 @@ function sendMessage() {
         return 0;
     }
 
-    socket.emit('send_message', chatroom, username, message);
+    socket.emit('send_message', chatroom, username, message, reply_message);
     $("#messageBox").val("");
+    stopReplying();
 
     setTimeout(function () {
         $("#messageBtn").addClass("d-none");
@@ -252,6 +274,8 @@ function sendFile() {
             dismissible: true,
             timeout: 3000
         });
+
+        stopReplying();
     });
 
     async function sendFiles(files) {
@@ -261,7 +285,7 @@ function sendFile() {
             let username = localStorage.getItem("username")
             let chatroom = window.location.pathname;
 
-            socket.emit('send_file', chatroom, username, filename, filedata);
+            socket.emit('send_file', chatroom, username, filename, filedata, reply_message);
         }
 
         return true;
@@ -294,12 +318,13 @@ function unselectFiles() {
 function recordAudio() {
     if (recording) {
         recorder.stop();
-        recorder.stream.getAudioTracks().forEach(function (track) { track.stop(); });
+        recorder.stream.getAudioTracks().forEach(function (track) {
+            track.stop();
+        });
         recording = false;
         $("#recordBtn > .fa-microphone").removeClass("text-danger");
         $("#recordBtn > .fa-microphone").addClass("text-white");
-    }
-    else {
+    } else {
         navigator.mediaDevices.getUserMedia({
             audio: true
         }).then(function (stream) {
@@ -307,7 +332,7 @@ function recordAudio() {
             recorder.start();
             recording = true;
             recorder.addEventListener('dataavailable', function (event) {
-                let file = new File([event.data], 'AudioRecording.ogg', { type: 'audio/ogg', lastModified: new Date() });
+                let file = new File([event.data], 'AudioRecording.ogg', {type: 'audio/ogg', lastModified: new Date()});
                 selectFiles([file]);
                 new SnackBar({
                     message: "Audio recording completed.",
@@ -335,43 +360,64 @@ function verifyMessage(e) {
         checkForEnter(e, sendMessage);
 
         socket.emit('user_typing', chatroom, username);
-    }
-    else {
+    } else {
         $("#messageBtn").addClass("d-none");
         $("#recordBtn").removeClass("d-none");
     }
 }
 
 function GenerateMessage(message, messageType) {
-    messagenumber += 1;
-    let align = "", htmlTR = "";
-    let last_user = $("#messagesArea .username:last-of-type").text();
+    let align = "", sentReceived = "received", htmlTR = "";
 
-    if (message.User == localStorage.getItem("username"))
+    if (message.User == localStorage.getItem("username")) {
         align = "ms-auto";
+        sentReceived = "sent";
+    }
 
     if (message.User != last_user)
         htmlTR += `
         <span class="username ${align}">${message.User}</span>
         `;
 
-
     htmlTR += `
-
-    <div class="${align} message" id="messageId${messagenumber}">
-    `;
     
+    <div class="${align} message ${sentReceived}" id="messageId${message.MessageId}" data-id="${message.MessageId}" data-user="${message.User}"  data-type="${message.Type}">
+    `;
+
+
+    if (message.ReplyingTo != undefined) {
+
+        if (message.ReplyingTo.Type == "Message")
+            htmlTR += `
+            <div class="reply">
+            <div class="replying-username">${message.ReplyingTo.User}</div>
+            <div class="replying-message">${message.ReplyingTo.Value}</div>
+            </div>
+            `;
+        else if (message.ReplyingTo.Type == "Image") {
+            htmlTR += `
+            <div class="reply mb-1">
+            <div class="replying-username">${message.ReplyingTo.User}</div>
+            <div class="replying-message"><p class="message-content"><img src="/content/shared_files/${message.ReplyingTo.Value}?v=${Math.random()}" alt="${message.ReplyingTo.Value}"></p></div>
+            </div>
+            `;
+        } else {
+            htmlTR += `
+            <div class="reply">
+            <div class="replying-username">${message.ReplyingTo.User}</div>
+            <div class="replying-message">${message.ReplyingTo.Value}</div>
+            </div>
+            `;
+        }
+    }
+
     if (messageType == "Message")
-        htmlTR += `<p id="messageText" class="message-content text">${message.Value}</p>
+        htmlTR += `<p class="message-content text">${message.Value}</p>
         `;
-    /*
-                       <a id="copyButton" class="btn btn-primary btn-download">
-                    <i class="text-white" onclick="copyMessage">test</i>
-                    </a>
-    */
+
     else if (messageType == "Image")
         htmlTR += `
-                <p class="message-content"><img src="/content/shared_files/${message.Value}?v=${Math.random()}" alt="${message.Value}" onclick="this.requestFullscreen()"></p>
+                <p class="message-content"><img src="/content/shared_files/${message.Value}?v=${Math.random()}" alt="${message.Value}"></p>
                 `;
     else if (messageType == "Audio")
         htmlTR += `
@@ -383,28 +429,40 @@ function GenerateMessage(message, messageType) {
                 `;
     else if (messageType == "File")
         htmlTR += `
-                <p class="message-content file"><span class="file-card"><i class="fa-solid fa-file text-gray"></i> ${message.Value}</span></p>
-                <a class="btn btn-primary btn-download" href="/content/shared_files/${message.Value}?v=${Math.random()}" target="_blank" download="true">
-                    <i class="fa-solid fa-download text-white"></i>
-                </a>
+                <p class="message-content file">
+                    <a class="btn btn-primary file-card" href="/content/shared_files/${message.Value}?v=${Math.random()}" target="_blank" download="true">
+                        <i class="fa-solid fa-file text-gray"></i> ${message.Value}
+                    </a>
+                </p>
                 `;
 
     htmlTR += `
     </div>
     `;
-    
+
     document.getElementById('messagesArea').insertAdjacentHTML('beforeend', htmlTR)
-    document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
-    
+
+    setTimeout(function () {
+        document.getElementById('messagesArea').scrollTop = document.getElementById('messagesArea').scrollHeight;
+    }, 100);
+
+    $(`#messageId${message.MessageId}`).on("dblclick", function () {
+        replyingTo(message.MessageId);
+    });
+
     if (messageType == "Video") {
-        const player = new Plyr(document.querySelector(`#messageId${messagenumber} video`));
+        const player = new Plyr(document.querySelector(`#messageId${message.MessageId} video`));
         player.volume = 0.3;
     }
-    
+
     if (messageType == "Audio") {
-        const player = new Plyr(document.querySelector(`#messageId${messagenumber} audio`));
+        const player = new Plyr(document.querySelector(`#messageId${message.MessageId} audio`));
         player.volume = 0.3;
     }
+
+    // document.querySelectorAll(`#messageId${message.MessageId}`).forEach(attachHoverEffect);
+
+    last_user = message.User;
 }
 
 function GenerateAnnouncement(message) {
@@ -486,7 +544,7 @@ async function userJoinedCall(username) {
 
         audioWorkletNodes[username].port.onmessage = (e) => {
             if (e.data.eventType === 'buffer') {
-                playbackBuffers[username] = { cursor: 0, buffer: new Float32Array(e.data.buffer) };
+                playbackBuffers[username] = {cursor: 0, buffer: new Float32Array(e.data.buffer)};
             }
         }
 
@@ -500,27 +558,26 @@ function userLeftCall(username) {
     playbackBuffers[username] = undefined;
 }
 
-// function copyMessage() {
-//     // Get the text field
-//     var copyText = document.getElementById("messageText");
-  
-//     // Select the text field
-//     copyText.select();
-//     copyText.setSelectionRange(0, 99999); // For mobile devices
-  
-//      // Copy the text inside the text field
-//     navigator.clipboard.writeText(copyText.value);
-  
-//     // Alert the copied text
-//     alert("Copied the text: " + copyText.value);
-//   } 
+function replyingTo(messageId) {
+    let user = "", type = "", messagecontent = "";
 
-// let text = document.getElementById('messageText').innerHTML;
-//   const copyMessage = async () => {
-//     try {
-//       await navigator.clipboard.writeText(text);
-//       console.log('Content copied to clipboard');
-//     } catch (err) {
-//       console.error('Failed to copy: ', err);
-//     }
-//   }
+    user = $(`#messageId${messageId}`).data('user');
+    type = $(`#messageId${messageId}`).data('type');
+
+    if (type == "Message" || type == "Image" || type == "File")
+        messagecontent = $(`#messageId${messageId} .message-content`).html();
+
+    else if (type == "Video" || type == "Audio")
+        messagecontent = `<p class="message-content text"> <i class="fa-solid fa-file text-gray"></i> ${type}</p>`;
+
+    $(".replying-to .replying-username").text(user);
+    $(".replying-to .replying-message").html(messagecontent);
+    $(".replying-to").removeClass('d-none');
+
+    reply_message = messageId;
+}
+
+function stopReplying() {
+    $(".replying-to").addClass('d-none');
+    reply_message = undefined;
+}

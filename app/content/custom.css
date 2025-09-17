@@ -1,3 +1,8 @@
+:root {
+    --plyr-audio-controls-background: #2f2f2f;
+    --plyr-audio-control-color: #fff;
+}
+
 body, .content {
     height: 100vh;
     width: 100%;
@@ -9,14 +14,12 @@ body, .content {
     display: flex;
     flex-direction: column;
     max-height: 100vh;
-
+    align-items: center;
+    justify-content: center;
 }
 
 .background{
-    background-image:url(images/bg.jpg) !important;
-    background-size: cover;
-    background-repeat: no-repeat;
-
+    background: radial-gradient(circle at top left, #0f172a 0%, #1e293b 40%, #1e3a8a 100%);
 }
 
 
@@ -30,6 +33,8 @@ body, html {
     margin:0;
     padding:0;
     box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color-scheme: dark;
 }
 
 .container{
@@ -57,32 +62,59 @@ body, html {
 
 #messageBox {
     width: 100%;
+    background-color: #3a3a3a;
+    color: white;
+    border: none;
 }
 
-.card-footer{
-    background-color:#242424 ;
+.card-footer, .card-header {
+    padding: 20px;
+    color: white;
+    background-color: #222222cc;
+}
+
+.card-footer {
+    border-top: 1px solid #333;
+    border-bottom-right-radius: 1rem!important;
+    border-bottom-left-radius: 1rem!important;
+}
+
+.card-header {
+    border-bottom: 1px solid #333;
+    border-top-right-radius: 1rem;
+    border-top-left-radius: 1rem;
 }
 
 .messages {
-    background-color:#353535;
+    background-color: #1e1e1ecc;
     color: rgb(112, 108, 97);
     max-height: 90vh;
-    margin-top: 2px;
-    margin-left: 2px;
-    margin-right: 2px;
-    margin-top: 45px;
-    margin-bottom: 40px;
+    max-width: 1100px;
+    min-width: 400px;
+    min-height: 30vh;
+    width: 100%;
     height: 90vh;
+    resize: both;
+    transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 0.3s ease;
+    will-change: transform;
+    border-radius: 1rem;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.5);
+    overflow: auto;
 }
 
 #messagesArea {
     height: 100%;
     overflow-x: hidden;
-    overflow-y: auto; 
+    overflow-y: auto;
+    background-color: #1d1f23;
+    padding: 30px;
+    perspective: 800px;
+    gap: 2px;
 }
 
 .message {    
-    background-color:#2965b4;
     color: aliceblue;
     border-radius: 13px;
     padding: 3px;
@@ -93,26 +125,25 @@ body, html {
     width: fit-content;
     position: relative;
     margin-bottom: 2px;
+    opacity: 0;
+    animation: zoomFade 0.35s forwards;
+    transition: transform 0.2s ease;
+    transform-style: preserve-3d;
+    will-change: transform;
 }
 
-.message > .btn-download {
-    position: absolute;
-    top: 10px;
-    right: -50px;
-    border-radius: 50%;
+.message:hover {
+    z-index: 1;
 }
 
-.message.ms-auto > .btn-download {
-    position: absolute;
-    top: 10px;
-    left: -50px;
-    border-radius: 50%;
+.message.sent {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
 }
-/* 
-.message > copyButton:{
-    size: 20px;
 
-} */
+.message.received {
+    background-color: #2f2f2f;
+}
+
 
 .message img {
     max-width: 100%;
@@ -140,24 +171,21 @@ body, html {
     margin: 0px;
 }
 
-.message-content span {
-    background-color: #1d282f;
+.file-card {
+    background-color: #1d282f !important;
     padding: 10px;
     border-radius: 10px;
     color: #fff;
+    border: 0px;
 }
 
-.message-content.file {
-    padding: 10px 0px;
-}
-
-.username {   
-    color: rgb(255, 255, 255);
+.username {
     border-radius: 3px;
     padding-top: 1px;
-    padding-left: 1px;
-    padding-right: 1px;
-    font-size: 88%;
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #999;
     box-sizing: border-box;
     text-overflow: inherit;
 }
@@ -182,13 +210,60 @@ body, html {
 
 .users-typing {
     position: absolute;
-    bottom: 55px;
-    width: 100%;
+    bottom: 77px;
     padding: 0px 5px;
     color: aliceblue;
-    background-color: #5c5c5c;
+    background-color: #2f2f2f;
     border-radius: 2px;
+    width: 100%;
     z-index: 5;
+    animation: zoomFade 0.15s forwards;
+    transition: transform 0.2s ease;
+    will-change: transform;
+}
+
+.replying-to {
+    position: absolute;
+    bottom: 77px;
+    width: 100%;
+    z-index: 5;
+    animation: zoomFade 0.35s forwards;
+    transition: transform 0.2s ease;
+    will-change: transform;
+}
+
+.btn-stop-replying {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+}
+
+.reply {
+    background-color: #1d1e1e;
+    border-radius: 4px;
+    border-left: 3px solid;
+    padding: 10px;
+    padding-right: 80px;
+    color: rgba(255, 255, 255, .6);
+}
+
+.message .reply {
+    margin-top: 5px;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+.reply img {
+    max-height: 50px !important;
+}
+
+.replying-username {
+    color: rgb(255, 255, 255, .9);
+    pointer-events: none;
+}
+
+.replying-message {
+    pointer-events: none;
 }
 
 .call-controls {
@@ -251,4 +326,27 @@ body, html {
 .plyr:fullscreen video {
     height: 100%;
     max-height: 100vh;
+}
+
+#SelectedFileDiv {
+    min-height: 38px;
+}
+
+@keyframes zoomFade {
+  0% {
+    transform: scale(0.9) translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate {
+    transition: 0.2s ease-in;
+}
+
+.animate:hover {
+    scale: 1.15;
 }

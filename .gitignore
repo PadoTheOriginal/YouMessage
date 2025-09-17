@@ -9,3 +9,4 @@ __pycache__/
 *.csr
 
 /app/content/shared_files/*
+/.idea/

@@ -22,7 +22,7 @@ if (os.path.isfile("data.pickle")):
         users = pickle.load(f)
 
 # make sure to remove all the temporary files on restart
-files = glob.glob('content\shared_files\*')
+files = glob.glob('content\/shared_files\=*')
 for f in files:
     os.remove(f)
     
@@ -35,7 +35,7 @@ def index(chat):
     
     chats.get_chat(chat)
     
-    response = make_response(render_template("index.jinja2"))
+    response = make_response(render_template("index.jinja2", chat=chat))
                              
     response.set_cookie('home', expires=0)
     response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
@@ -100,7 +100,7 @@ def user_connected(chat:str, username:str):
     return chatroom.get_all_messages_JSON()
 
 @socketio.on("send_message")
-def send_message(chat:str, username:str, message:str):
+def send_message(chat:str, username:str, message:str, replying_to:int = None):
     global chats, users
     
     if ((chat.isspace() or len(chat) == 0) or 
@@ -116,7 +116,9 @@ def send_message(chat:str, username:str, message:str):
     
     chatroom = chats.get_chat(chat)
     
-    new_message = chatroom.add_new_message(Message("Message", message, users.get_user_by_username(username)))
+    replying_to_message = chatroom.get_message_by_id(replying_to)
+
+    new_message = chatroom.add_new_message(Message("Message", message, users.get_user_by_username(username), replying_to_message))
 
     emit(f'new_message{chat}', {"Message": new_message.toJSON()}, broadcast=True)
     
@@ -195,7 +197,7 @@ def leave_call(chat:str, username:str):
     emit("left_call", user.toJSON(), broadcast=True, include_self=False, room=chat)
 
 @socketio.on("send_file")
-def send_file(chat:str, username:str, filename:str, filedata:bytes):
+def send_file(chat:str, username:str, filename:str, filedata:bytes, replying_to:int = None):
     global chats, users
     
     if ((chat.isspace() or len(chat) == 0) or 
@@ -234,7 +236,11 @@ def send_file(chat:str, username:str, filename:str, filedata:bytes):
     
     else:
         new_message = Message("File", new_filename, users.get_user_by_username(username))
-    
+
+    replying_to_message = chatroom.get_message_by_id(replying_to)
+
+    new_message.replying_to = replying_to_message
+
     new_message = chatroom.add_new_message(new_message)
     
     emit(f'new_message{chat}', {"Message": new_message.toJSON()}, broadcast=True)

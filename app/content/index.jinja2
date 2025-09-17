@@ -19,58 +19,62 @@
 <body class="listen-clipboard">  
     <div class="background">
         <div class="content">
-            <div class="row">
-                <div class="col-lg-2 col-md-2 col-1"></div>
-                <div class="col-lg-8 col-md-8 col-10">
-                    <div class="card messages position-relative">
-                        <div class="users-typing d-none">
-                            User is typing...
-                        </div>
-                        <div class="call-controls d-none">
-                            <div class="center-controls mx-auto">
-                                <button id="micBtn" class="remove-style" type="button" onclick="toggleMicrophone();">
-                                    <i class="fa-solid fa-microphone-slash text-white fa-xl"></i>
-                                </button>
-                                <button id="leaveCall" class="btn btn-danger rounded-circle ms-3" type="button" onclick="leaveCall();">
-                                    <i class="fa-solid fa-phone text-white"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body d-flex flex-column" id="messagesArea">
-                        </div>
-                        <div class="card-footer">
-                            <div id="MessageBoxDiv" class="d-flex flex-row">
-                                <input id="sendFiles" class="d-none" type="file" onchange="validateFiles(this)" multiple>
-                                <button class="remove-style me-3" type="button" onclick="$('#sendFiles').click()"><i
-                                        class="fa-solid fa-plus text-white fa-xl"></i></button>
+            <div class="card messages position-relative">
+                <div class="users-typing d-none">
+                    User is typing...
+                </div>
+                <div class="replying-to reply d-none">
+                    <div class="replying-username">Test</div>
+                    <div class="replying-message">Replying to</div>
+                    <button type="button" class="btn-close btn-close-white btn-stop-replying" onclick="stopReplying()"></button>
+                </div>
 
-                                <input placeholder="Type a message" id="messageBox" type="text"
-                                    class="form-control me-3" onkeyup="verifyMessage(event)">
-
-                                <button id="recordBtn" class="remove-style" type="button" onclick="recordAudio();"><i
-                                        class="fa-solid fa-microphone text-white fa-xl"></i></button>
-
-                                <button type="button" onclick="sendMessage()" class="remove-style d-none"
-                                    id="messageBtn">
-                                    <i class="fa-solid fa-paper-plane text-white fa-xl"></i></button>
-                            </div>
-                            <div id="SelectedFileDiv" class="d-flex flex-row d-none">
-                                <button type="button" class="btn-close btn-close-white m-auto"
-                                    onclick="unselectFiles()"></button>
-                                <span class="w-100 ms-3 my-auto text-white">Send files</span>
-                                <button type="button" onclick="sendFile()" class="remove-style" id="FileBtn">
-                                    <i class="fa-solid fa-paper-plane text-white fa-xl"></i>
-                                </button>
-                            </div>
-                        </div>
+                <div class="call-controls d-none">
+                    <div class="center-controls mx-auto">
+                        <button id="micBtn" class="remove-style" type="button" onclick="toggleMicrophone();">
+                            <i class="fa-solid fa-microphone-slash text-white fa-xl"></i>
+                        </button>
+                        <button id="leaveCall" class="btn btn-danger rounded-circle ms-3" type="button" onclick="leaveCall();">
+                            <i class="fa-solid fa-phone text-white"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-2 col-1">
-                    <button id="joinCallBtn" type="button" onclick="joinCall()" class="btn btn-primary mt-5">
-                        <i class="fa-solid fa-phone text-white fa-xl"></i>
-                    </button>
+                <div class="card-header">
+                    <i class="fa-solid fa-comment"></i>&nbsp; <span id="chatroom" contenteditable="true">{{ chat }}</span>
+                </div>
+                <div class="card-body d-flex flex-column" id="messagesArea">
+                </div>
+                <div class="card-footer">
+                    <div id="MessageBoxDiv" class="d-flex flex-row">
+                        <input id="sendFiles" class="d-none" type="file" onchange="validateFiles(this)" multiple>
+                        <button class="remove-style animate me-3" type="button" onclick="$('#sendFiles').click()"><i
+                                class="fa-solid fa-plus text-white fa-xl"></i></button>
+
+                        <input placeholder="Type a message" id="messageBox" type="text"
+                            class="form-control me-3" onkeyup="verifyMessage(event)" >
+
+                        <button id="recordBtn" class="remove-style animate" type="button" onclick="recordAudio();"><i
+                                class="fa-solid fa-microphone text-white fa-xl"></i></button>
+
+                        <button type="button" onclick="sendMessage()" class="remove-style animate d-none"
+                            id="messageBtn">
+                            <i class="fa-solid fa-paper-plane text-white fa-xl"></i></button>
+                    </div>
+                    <div id="SelectedFileDiv" class="d-flex flex-row d-none">
+                        <button type="button" class="btn-close btn-close-white m-auto"
+                            onclick="unselectFiles()"></button>
+                        <span class="w-100 ms-3 my-auto text-white">Send files</span>
+                        <button type="button" onclick="sendFile()" class="remove-style" id="FileBtn">
+                            <i class="fa-solid fa-paper-plane text-white fa-xl"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
+
+
+{#                    <button id="joinCallBtn" type="button" onclick="joinCall()" class="btn btn-primary mt-5">#}
+{#                        <i class="fa-solid fa-phone text-white fa-xl"></i>#}
+{#                    </button>#}
         </div>
 
         <!-- Modal -->

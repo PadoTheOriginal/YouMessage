@@ -24,6 +24,12 @@ class Chat():
         self.messages.append(new_message)
         return new_message
     
+    def get_message_by_id(self, message_id:int) -> Message:
+        if not message_id:
+            return None
+
+        return next(message for message in self.messages if message.message_id == message_id)
+
     def get_all_messages(self) -> list[Message]:
         return self.messages
     
